@@ -63,7 +63,9 @@ func apply_butter() -> void:
 	if not was_already_buttered and not freeze and linear_velocity.length() > 1.0:
 		linear_velocity *= 1.2
 
-func reset_to_anchor() -> void:
+func reset_to_anchor(new_anchor = null) -> void:
+	if new_anchor != null:
+		anchor_pos = new_anchor
 	freeze = true
 	position = anchor_pos
 	rotation = 0.0

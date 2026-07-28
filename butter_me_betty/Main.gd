@@ -16,6 +16,8 @@ const STICK_CONTACT_RADIUS := 55.0
 const BUTTERED_LAUNCH_BONUS := 1.3
 
 const MAX_LIVES := 3
+const LEVEL_START_POS := Vector2(150.0, GROUND_Y - 42.0 - 140.0) # 42 == Betty.RADIUS
+const CHECKPOINT_ADVANCE := 40.0 # min forward progress before a new checkpoint counts
 
 # Each level is flat-run -> wall hop -> pit -> slick stretch (butter needed)
 # -> ramp -> raised platform (maybe with loops) -> goal.
@@ -247,10 +249,10 @@ func _start_level(index: int) -> void:
 	betty.ramp_x1 = cfg.ramp_x1
 	betty.ramp_rise = cfg.ramp_rise
 	betty.ramp_ground_y = GROUND_Y
-	betty.reset_to_anchor()
+	betty.reset_to_anchor(LEVEL_START_POS) # a fresh level always starts from the true slingshot
 
 	camera.limit_right = int(cfg.level_width)
-	camera.global_position = betty.anchor_pos + Vector2(180, -60)
+	_snap_camera_to(betty.anchor_pos + Vector2(180, -60))
 
 	state = "aiming"
 	overlay.visible = false
@@ -462,11 +464,22 @@ func _launch() -> void:
 	betty.angular_velocity = 0.0
 	state = "launched"
 
+func _snap_camera_to(pos: Vector2) -> void:
+	# jump instantly instead of smoothly panning there -- with smoothing left
+	# on, a big jump (e.g. from a level's goal back to the next level's start)
+	# takes a visible moment to catch up, which reads as "Betty didn't show up"
+	camera.position_smoothing_enabled = false
+	camera.global_position = pos
+	camera.position_smoothing_enabled = true
+
 func _fail_attempt() -> void:
 	if lives > 0:
+		# reset_to_anchor() with no args reuses betty.anchor_pos as-is, which
+		# _process keeps advancing forward as she clears ground safely -- so a
+		# failed attempt retries from her last checkpoint, not the start
 		betty.reset_to_anchor()
 		state = "aiming"
-		camera.global_position = betty.anchor_pos + Vector2(180, -60)
+		_snap_camera_to(betty.anchor_pos + Vector2(180, -60))
 	else:
 		state = "over_lives"
 		show_out_of_tries_screen()
@@ -489,6 +502,12 @@ func _process(delta: float) -> void:
 
 	if betty.in_loop or betty.linear_velocity.length() > 15.0:
 		stall_timer = 0.0
+		# advance her checkpoint while she's stably grounded and further along
+		# than the last one -- keeps her from restarting all the way at the
+		# slingshot every time an attempt fails partway through the level
+		if not betty.in_loop and abs(betty.linear_velocity.y) < 5.0 \
+				and betty.position.x > betty.anchor_pos.x + CHECKPOINT_ADVANCE:
+			betty.anchor_pos = Vector2(betty.position.x, betty.position.y - 140.0)
 	else:
 		stall_timer += delta
 		if stall_timer > STALL_TIME:
