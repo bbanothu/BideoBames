@@ -6,7 +6,7 @@ const BUTTERED_FRICTION := 0.008
 const BUTTER_DURATION := 6.0
 const RADIUS := 42.0
 
-@onready var sprite: Sprite2D = $Sprite2D
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 var buttered: bool = false
 var butter_timer: float = 0.0
@@ -47,8 +47,33 @@ func _ready() -> void:
 	shape.radius = RADIUS
 	$CollisionShape2D.shape = shape
 
+	sprite.sprite_frames = _build_sprite_frames()
+	sprite.play("idle")
+
 	anchor_pos = position
 	freeze = true
+
+func _build_sprite_frames() -> SpriteFrames:
+	# PLACEHOLDER animations built from the only run-cycle frames we have
+	# (betty_0/1/2, all nearly the same pose). Swap in real idle and
+	# launched/tumbling art here once it exists -- this is just enough
+	# structure that "idle" and "launched" are already distinct states to
+	# drop new frames into, rather than a single static sprite.
+	var sf := SpriteFrames.new()
+	sf.remove_animation("default")
+
+	sf.add_animation("idle")
+	sf.set_animation_speed("idle", 3.0)
+	sf.set_animation_loop("idle", true)
+	for i in range(3):
+		sf.add_frame("idle", load("res://sprites/frames/betty_%d.png" % i))
+
+	sf.add_animation("launched")
+	sf.set_animation_speed("launched", 1.0)
+	sf.set_animation_loop("launched", true)
+	sf.add_frame("launched", load("res://sprites/frames/betty_0.png"))
+
+	return sf
 
 func apply_butter() -> void:
 	# called every frame the butter stick (or a level pickup) touches her, so
@@ -76,6 +101,20 @@ func reset_to_anchor(new_anchor = null) -> void:
 	in_loop = false
 	physics_material_override.friction = NORMAL_FRICTION
 	sprite.modulate = Color(1, 1, 1)
+	# always face right (toward the level) when parked and ready to aim
+	facing = 1
+	sprite.flip_h = false
+	sprite.play("idle")
+
+func on_launched(direction: int) -> void:
+	# facing is set ONCE here, not every frame during flight -- she's a
+	# rolling/tumbling body, and rotation already conveys her spin. Flipping
+	# the sprite on top of that every frame based on velocity was fighting
+	# the rotation and was the actual cause of her looking like she faced the
+	# wrong way; a rolling ball doesn't need a separate "facing" flip.
+	facing = direction
+	sprite.flip_h = direction < 0
+	sprite.play("launched")
 
 func enter_loop(center: Vector2, _nominal_radius: float) -> void:
 	if in_loop or freeze or loop_cooldown > 0:
@@ -105,14 +144,6 @@ func _process(delta: float) -> void:
 			buttered = false
 			physics_material_override.friction = NORMAL_FRICTION
 			sprite.modulate = Color(1, 1, 1)
-
-	# face the direction she's actually rolling, not just spin in place --
-	# a little deadzone so she doesn't flicker back and forth near a standstill
-	if linear_velocity.x > 10.0:
-		facing = 1
-	elif linear_velocity.x < -10.0:
-		facing = -1
-	sprite.flip_h = facing < 0
 
 func _integrate_forces(phys_state: PhysicsDirectBodyState2D) -> void:
 	if in_loop:

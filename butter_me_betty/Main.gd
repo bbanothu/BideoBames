@@ -462,6 +462,7 @@ func _launch() -> void:
 		mult *= BUTTERED_LAUNCH_BONUS
 	betty.linear_velocity = pull * mult
 	betty.angular_velocity = 0.0
+	betty.on_launched(1 if pull.x >= 0.0 else -1)
 	state = "launched"
 
 func _snap_camera_to(pos: Vector2) -> void:
