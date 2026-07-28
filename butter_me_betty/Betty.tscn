@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Betty.gd" id="1"]
+[ext_resource type="Texture2D" path="res://sprites/frames/betty_0.png" id="2"]
+
+[node name="Betty" type="RigidBody2D"]
+script = ExtResource("1")
+contact_monitor = true
+max_contacts_reported = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
