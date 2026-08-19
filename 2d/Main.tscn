@@ -1,0 +1,388 @@
+[gd_scene load_steps=11 format=3 uid="uid://c0y8q7t2x8k1a"]
+
+[ext_resource type="Script" path="res://NetCharacter.gd" id="1_netchar"]
+[ext_resource type="Script" path="res://Background.gd" id="2_background"]
+[ext_resource type="Script" path="res://Main.gd" id="3_main"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(4800, 80)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_char"]
+radius = 10.0
+height = 64.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.08, 0.09, 0.6)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.1, 0.1, 0.11, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.6)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health"]
+bg_color = Color(0.86, 0.18, 0.24, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina"]
+bg_color = Color(0.95, 0.78, 0.15, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("3_main")
+
+[node name="BackgroundFallback" type="ColorRect" parent="."]
+offset_left = -300.0
+offset_top = 0.0
+offset_right = 4300.0
+offset_bottom = 720.0
+color = Color(0.78, 0.78, 0.78, 1)
+
+[node name="Background" type="Node2D" parent="."]
+script = ExtResource("2_background")
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(2000, 680)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="GroundVisual" type="ColorRect" parent="Ground"]
+offset_left = -2400.0
+offset_top = -40.0
+offset_right = 2400.0
+offset_bottom = 40.0
+color = Color(0.55, 0.55, 0.55, 1)
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(200, 500)
+scale = Vector2(4, 4)
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1_netchar")
+slot = "A"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Player"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CapsuleShape2D_char")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+limit_left = -300
+limit_top = 0
+limit_right = 4300
+limit_bottom = 720
+position_smoothing_enabled = true
+
+[node name="Opponent" type="CharacterBody2D" parent="."]
+position = Vector2(1600, 500)
+scale = Vector2(4, 4)
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_netchar")
+slot = "B"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Opponent"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Opponent"]
+shape = SubResource("CapsuleShape2D_char")
+
+[node name="Camera2D" type="Camera2D" parent="Opponent"]
+enabled = false
+limit_left = -300
+limit_top = 0
+limit_right = 4300
+limit_bottom = 720
+position_smoothing_enabled = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="StatsPanel" type="PanelContainer" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 276.0
+offset_bottom = 90.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="UI/StatsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Rows" type="VBoxContainer" parent="UI/StatsPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HealthRow" type="HBoxContainer" parent="UI/StatsPanel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HealthTag" type="Label" parent="UI/StatsPanel/Margin/Rows/HealthRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(30, 0)
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.92, 0.35, 0.4, 1)
+text = "HP"
+
+[node name="HealthWrap" type="Control" parent="UI/StatsPanel/Margin/Rows/HealthRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(180, 20)
+
+[node name="HealthBar" type="ProgressBar" parent="UI/StatsPanel/Margin/Rows/HealthRow/HealthWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_styles/background = SubResource("StyleBoxFlat_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HealthValue" type="Label" parent="UI/StatsPanel/Margin/Rows/HealthRow/HealthWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 3
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StaminaRow" type="HBoxContainer" parent="UI/StatsPanel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StaminaTag" type="Label" parent="UI/StatsPanel/Margin/Rows/StaminaRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(30, 0)
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.95, 0.82, 0.25, 1)
+text = "SP"
+
+[node name="StaminaWrap" type="Control" parent="UI/StatsPanel/Margin/Rows/StaminaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(180, 20)
+
+[node name="StaminaBar" type="ProgressBar" parent="UI/StatsPanel/Margin/Rows/StaminaRow/StaminaWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_styles/background = SubResource("StyleBoxFlat_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaValue" type="Label" parent="UI/StatsPanel/Margin/Rows/StaminaRow/StaminaWrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 3
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HUD" type="Label" parent="UI"]
+offset_left = 16.0
+offset_top = 98.0
+offset_right = 900.0
+offset_bottom = 122.0
+theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 0.6)
+theme_override_constants/outline_size = 3
+text = "Move: A / D   Jump: W   Attack 1: J   Attack 2: K   Special: L   Hit: H   Dead: G   Pause: Esc"
+
+[node name="OpponentPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -276.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 58.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="UI/OpponentPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="UI/OpponentPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Tag" type="Label" parent="UI/OpponentPanel/Margin/Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.92, 0.35, 0.4, 1)
+text = "OPP HP"
+
+[node name="Wrap" type="Control" parent="UI/OpponentPanel/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(150, 20)
+
+[node name="OpponentHealthBar" type="ProgressBar" parent="UI/OpponentPanel/Margin/Row/Wrap"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_styles/background = SubResource("StyleBoxFlat_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="PauseMenu"]
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="PauseMenu/Center"]
+process_mode = 3
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Title" type="Label" parent="PauseMenu/Center/VBox"]
+process_mode = 3
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+horizontal_alignment = 1
+text = "Paused"
+
+[node name="ResumeButton" type="Button" parent="PauseMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(220, 48)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_bg")
+text = "Resume"
+
+[node name="QuitMenuButton" type="Button" parent="PauseMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(220, 44)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_bg")
+text = "Quit to Menu"
+
+[node name="QuitGameButton" type="Button" parent="PauseMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(220, 44)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_bg")
+text = "Quit Game"
+
+[node name="GameOverMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 11
+
+[node name="Dim" type="ColorRect" parent="GameOverMenu"]
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.65)
+
+[node name="Center" type="CenterContainer" parent="GameOverMenu"]
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="GameOverMenu/Center"]
+process_mode = 3
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="GameOverTitle" type="Label" parent="GameOverMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+theme_override_colors/font_color = Color(1.0, 0.85, 0.2, 1)
+horizontal_alignment = 1
+text = "You Win!"
+
+[node name="RematchButton" type="Button" parent="GameOverMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(220, 48)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_bg")
+text = "Rematch"
+
+[node name="GameOverQuitButton" type="Button" parent="GameOverMenu/Center/VBox"]
+process_mode = 3
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(220, 44)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_bg")
+text = "Quit to Menu"

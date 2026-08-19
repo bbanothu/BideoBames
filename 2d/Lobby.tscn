@@ -1,0 +1,134 @@
+[gd_scene load_steps=4 format=3 uid="uid://dlobby0001"]
+
+[ext_resource type="Script" path="res://Lobby.gd" id="1_lobby"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.16, 0.16, 0.17, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.5)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_field"]
+bg_color = Color(0.95, 0.95, 0.95, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.4)
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_lobby")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.78, 0.78, 0.78, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_colors/font_color = Color(0.12, 0.12, 0.13, 1)
+horizontal_alignment = 1
+text = "Multiplayer"
+
+[node name="ServerLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.35, 0.35, 0.36, 1)
+text = "Relay server address"
+
+[node name="ServerField" type="LineEdit" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(320, 36)
+theme_override_styles/normal = SubResource("StyleBoxFlat_field")
+placeholder_text = "ws://192.168.1.x:9080"
+
+[node name="Spacer1" type="Control" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="HostButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(320, 48)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "Host Game"
+
+[node name="OrLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.35, 0.35, 0.36, 1)
+horizontal_alignment = 1
+text = "— or —"
+
+[node name="JoinRow" type="HBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CodeField" type="LineEdit" parent="Center/VBox/JoinRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(140, 40)
+theme_override_styles/normal = SubResource("StyleBoxFlat_field")
+placeholder_text = "CODE"
+max_length = 4
+
+[node name="JoinButton" type="Button" parent="Center/VBox/JoinRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(160, 40)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "Join Game"
+
+[node name="StatusLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.12, 0.12, 0.13, 1)
+horizontal_alignment = 1
+autowrap_mode = 2
+text = ""
+
+[node name="Spacer2" type="Control" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(160, 40)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "Back"
