@@ -1,0 +1,49 @@
+{
+  "characters": {
+    "Ichigo": {
+      "idle": 2,
+      "running": 4,
+      "jump": 5,
+      "attack_1": 7,
+      "attack_2": 5,
+      "attack_special": 3,
+      "hit": 2,
+      "dead": 3
+    },
+    "Naruto": {
+      "idle": 6,
+      "running": 6,
+      "jump": 5,
+      "attack_1": 12,
+      "attack_2": 5,
+      "attack_special": 7,
+      "hit": 2,
+      "dead": 4
+    },
+    "Sasuke": {
+      "idle": 4,
+      "running": 6,
+      "jump": 4,
+      "attack_1": 10,
+      "attack_2": 4,
+      "attack_special": 7,
+      "hit": 2,
+      "dead": 4
+    },
+    "StickFigure": {
+      "idle": 4,
+      "running": 8,
+      "jump": 6,
+      "attack_1": 6,
+      "attack_2": 6,
+      "attack_special": 8,
+      "hit": 3,
+      "dead": 4
+    }
+  },
+  "maps": [
+    "forest.png",
+    "mountain_canyon.png",
+    "sunset_lake.png"
+  ]
+}
