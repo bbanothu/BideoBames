@@ -1,8 +1,33 @@
 import * as THREE from "three";
 
-export const ACTIONS = ["idle", "running", "jump", "attack_1", "attack_2", "attack_special", "hit", "dead"];
-export const NO_LOOP = new Set(["attack_1", "attack_2", "attack_special", "hit", "dead", "jump"]);
-const ANIM_FPS = { idle: 8, running: 16, jump: 14, attack_1: 18, attack_2: 18, attack_special: 16, hit: 14, dead: 10 };
+export const ACTIONS = [
+  "idle",
+  "running",
+  "jump",
+  "attack_1",
+  "attack_2",
+  "attack_special",
+  "hit",
+  "dead",
+];
+export const NO_LOOP = new Set([
+  "attack_1",
+  "attack_2",
+  "attack_special",
+  "hit",
+  "dead",
+  "jump",
+]);
+const ANIM_FPS = {
+  idle: 8,
+  running: 16,
+  jump: 14,
+  attack_1: 18,
+  attack_2: 18,
+  attack_special: 16,
+  hit: 14,
+  dead: 10,
+};
 
 const loader = new THREE.TextureLoader();
 
@@ -11,6 +36,7 @@ function loadTexture(path) {
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping; // needed so repeat.x = -1 mirrors correctly
   return tex;
 }
 
@@ -23,12 +49,17 @@ export class AnimatedSprite {
       const count = manifest.characters[characterName]?.[action] || 0;
       const arr = [];
       for (let i = 1; i <= count; i++) {
-        arr.push(loadTexture(`assets/characters/${characterName}/${action}/${i}.png`));
+        arr.push(
+          loadTexture(`assets/characters/${characterName}/${action}/${i}.png`),
+        );
       }
       this.frames[action] = arr;
     }
 
-    this.material = new THREE.SpriteMaterial({ map: this.frames.idle[0] || null, transparent: true });
+    this.material = new THREE.SpriteMaterial({
+      map: this.frames.idle[0] || null,
+      transparent: true,
+    });
     this.sprite = new THREE.Sprite(this.material);
     this.sprite.center.set(0.5, 0.0); // anchor at feet, not center
 
@@ -55,7 +86,14 @@ export class AnimatedSprite {
   setFlip(flip) {
     if (this.flipped === flip) return;
     this.flipped = flip;
-    this._updateScale();
+    this._applyFlipToTexture(this.material.map);
+  }
+
+  _applyFlipToTexture(tex) {
+    if (!tex) return;
+    tex.repeat.x = this.flipped ? -1 : 1;
+    tex.offset.x = this.flipped ? 1 : 0;
+    tex.needsUpdate = true;
   }
 
   update(dt) {
@@ -81,6 +119,7 @@ export class AnimatedSprite {
     const tex = this.frames[this.action][this.frameIndex];
     if (!tex) return;
     this.material.map = tex;
+    this._applyFlipToTexture(tex);
     this.material.needsUpdate = true;
     this._updateScale();
   }
@@ -90,7 +129,7 @@ export class AnimatedSprite {
     const aspect = img && img.width ? img.width / img.height : 0.7;
     const h = this.height;
     const w = h * aspect;
-    this.sprite.scale.set(this.flipped ? -w : w, h, 1);
+    this.sprite.scale.set(w, h, 1);
   }
 }
 

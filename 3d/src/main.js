@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { preloadAll } from "./AnimatedSprite.js";
 import { Fighter } from "./Fighter.js";
 import { Arena, WORLD_LEFT, WORLD_RIGHT } from "./Arena.js";
+import { Net } from "./Net.js";
 
 const $ = (id) => document.getElementById(id);
 const screens = {
   loading: $("loading-screen"),
   start: $("start-screen"),
+  lobby: $("lobby-screen"),
   character: $("character-screen"),
   map: $("map-screen"),
   hud: $("hud"),
@@ -14,7 +16,14 @@ const screens = {
   gameover: $("gameover-screen"),
 };
 function show(...names) {
-  for (const key in screens) screens[key].classList.toggle("hidden", !names.includes(key));
+  for (const key in screens)
+    screens[key].classList.toggle("hidden", !names.includes(key));
+  const menuBg =
+    names.includes("start") ||
+    names.includes("lobby") ||
+    names.includes("character");
+  $("menu-bg").classList.toggle("visible", menuBg);
+  $("menu-scrim").classList.toggle("visible", menuBg);
 }
 
 // ---- three.js boilerplate ----
@@ -22,7 +31,12 @@ const canvas = $("canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  100,
+);
 camera.position.set(0, 3.4, 13);
 camera.lookAt(0, 2, 0);
 
@@ -38,7 +52,7 @@ resize();
 
 // ---- state ----
 let manifest = null;
-let selectedCharacter = "StickFigure";
+let selectedCharacter = "Naruto";
 let selectedMapIndex = 0;
 let arena = null;
 let player = null;
@@ -47,11 +61,18 @@ let running = false;
 let paused = false;
 let gameOver = false;
 let clock = new THREE.Clock();
+let isMultiplayer = false;
+let isHost = false;
+const net = new Net();
 
 fetch("assets/manifest.json")
   .then((r) => r.json())
   .then((m) => {
     manifest = m;
+    if (manifest.maps && manifest.maps.length) {
+      $("menu-bg").style.backgroundImage =
+        `url(assets/maps/${manifest.maps[0]})`;
+    }
     preloadAll(manifest, () => {
       show("start");
       $("start-btn").focus();
@@ -63,9 +84,52 @@ $("start-btn").addEventListener("click", () => {
   buildCharacterGrid();
   show("character");
 });
+$("mp-btn").addEventListener("click", () => {
+  $("lobby-status").textContent = "";
+  show("lobby");
+});
 $("quit-btn").addEventListener("click", () => {
   window.close();
 });
+
+// ---- Multiplayer lobby ----
+$("host-btn").addEventListener("click", () => {
+  const url = $("server-field").value.trim();
+  if (!url) return;
+  $("lobby-status").textContent = "Connecting...";
+  net.hostLobby(url);
+});
+$("join-btn").addEventListener("click", () => {
+  const url = $("server-field").value.trim();
+  const code = $("code-field").value.trim().toUpperCase();
+  if (!url) return;
+  if (!code) {
+    $("lobby-status").textContent = "Enter a lobby code";
+    return;
+  }
+  $("lobby-status").textContent = "Connecting...";
+  net.joinLobby(url, code);
+});
+$("lobby-back-btn").addEventListener("click", () => {
+  net.close();
+  show("start");
+});
+net.onHosted = (code) => {
+  $("lobby-status").textContent = `Your code: ${code}\nWaiting for opponent...`;
+};
+net.onPaired = (role) => {
+  isMultiplayer = true;
+  isHost = role === "host";
+  buildCharacterGrid();
+  show("character");
+};
+net.onError = (msg) => {
+  if (isMultiplayer) quitToMenu();
+  else $("lobby-status").textContent = "Error: " + msg;
+};
+net.onPeerLeft = () => {
+  if (isMultiplayer) quitToMenu();
+};
 
 // ---- Character select ----
 function buildCharacterGrid() {
@@ -77,7 +141,9 @@ function buildCharacterGrid() {
   function refresh() {
     $("character-selected").textContent = `Selected: ${chosen}`;
     $("char-next-btn").disabled = false;
-    [...grid.children].forEach((c) => c.classList.toggle("selected", c.dataset.name === chosen));
+    [...grid.children].forEach((c) =>
+      c.classList.toggle("selected", c.dataset.name === chosen),
+    );
   }
 
   for (const name of names) {
@@ -104,7 +170,14 @@ function buildCharacterGrid() {
     show("map");
   };
 }
-$("char-back-btn").addEventListener("click", () => show("start"));
+$("char-back-btn").addEventListener("click", () => {
+  if (isMultiplayer) {
+    net.close();
+    isMultiplayer = false;
+    isHost = false;
+  }
+  show("start");
+});
 
 // ---- Map select ----
 function buildMapScreen() {
@@ -114,10 +187,14 @@ function buildMapScreen() {
 function showMap() {
   const name = manifest.maps[selectedMapIndex];
   $("map-bg").style.backgroundImage = `url(assets/maps/${name})`;
-  $("map-name").textContent = name.replace(/\.png$/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  $("map-name").textContent = name
+    .replace(/\.png$/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 $("map-prev-btn").addEventListener("click", () => {
-  selectedMapIndex = (selectedMapIndex - 1 + manifest.maps.length) % manifest.maps.length;
+  selectedMapIndex =
+    (selectedMapIndex - 1 + manifest.maps.length) % manifest.maps.length;
   showMap();
 });
 $("map-next-btn").addEventListener("click", () => {
@@ -133,12 +210,30 @@ function startFight() {
   arena = new Arena(scene, manifest.maps[selectedMapIndex]);
 
   player = new Fighter(selectedCharacter, manifest, scene, { isLocal: true });
-  opponent = new Fighter(selectedCharacter, manifest, scene, { isAI: true });
+  opponent = new Fighter(
+    selectedCharacter,
+    manifest,
+    scene,
+    isMultiplayer ? { isRemote: true } : { isAI: true },
+  );
   player.opponent = opponent;
   opponent.opponent = player;
-  player.setPosition(-3.2, 0);
-  opponent.setPosition(3.2, 0);
-  opponent.anim.setFlip(true);
+
+  // host is always shown on the left, joiner always on the right (matches the 2D relay convention)
+  const amRight = isMultiplayer && !isHost;
+  player.setPosition(amRight ? 3.2 : -3.2, 0);
+  opponent.setPosition(amRight ? -3.2 : 3.2, 0);
+  opponent.anim.setFlip(!amRight); // face the player until real data arrives
+
+  if (isMultiplayer) {
+    player.onSendState = (data) => net.sendState({ kind: "state", ...data });
+    player.onHitOpponent = (dmg, dir) =>
+      net.sendState({ kind: "hit", dmg, dir });
+    net.onMessage = (data) => {
+      if (data.kind === "hit") player.takeDamage(data.dmg, data.dir);
+      else if (data.kind === "state") opponent.receiveState(data);
+    };
+  }
 
   player.onHealthChange = (hp, sp) => {
     $("hp-bar").style.transform = `scaleX(${hp / 100})`;
@@ -198,6 +293,10 @@ function quitToMenu() {
   running = false;
   paused = false;
   gameOver = false;
+  net.onMessage = null;
+  net.close();
+  isMultiplayer = false;
+  isHost = false;
   clearArena();
   show("start");
 }
@@ -209,7 +308,11 @@ function tick() {
   if (running && !paused && !gameOver && player && opponent) {
     player.update(dt, WORLD_LEFT, WORLD_RIGHT);
     opponent.update(dt, WORLD_LEFT, WORLD_RIGHT);
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, (player.position.x + opponent.position.x) / 2, 0.08);
+    camera.position.x = THREE.MathUtils.lerp(
+      camera.position.x,
+      (player.position.x + opponent.position.x) / 2,
+      0.08,
+    );
   }
   renderer.render(scene, camera);
 }

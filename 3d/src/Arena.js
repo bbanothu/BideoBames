@@ -17,7 +17,7 @@ export class Arena {
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(60, 30),
-      new THREE.MeshStandardMaterial({ color: 0x8a8a8a })
+      new THREE.MeshStandardMaterial({ color: 0x8a8a8a }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(0, 0, 0);
@@ -28,7 +28,7 @@ export class Arena {
       tex.colorSpace = THREE.SRGBColorSpace;
       const backdrop = new THREE.Mesh(
         new THREE.PlaneGeometry(40, 20),
-        new THREE.MeshBasicMaterial({ map: tex })
+        new THREE.MeshBasicMaterial({ map: tex }),
       );
       backdrop.position.set(0, 10, -12);
       this.group.add(backdrop);

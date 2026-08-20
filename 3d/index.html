@@ -1,93 +1,151 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Stick Duel 3D</title>
-<link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <canvas id="canvas"></canvas>
+  <head>
+    <meta charset="utf-8" />
+    <title>Stick Duel 3D</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="menu-bg"></div>
+    <div id="menu-scrim" class="scrim"></div>
 
-  <div id="loading-screen" class="screen">
-    <div class="glass center-card">
-      <div class="title">Loading…</div>
-    </div>
-  </div>
-
-  <div id="start-screen" class="screen hidden">
-    <div class="glass center-card">
-      <div class="title">STICK DUEL 3D</div>
-      <div class="subtitle">three.js edition</div>
-      <button id="start-btn" class="btn btn-primary">Local Practice</button>
-      <button id="quit-btn" class="btn">Quit</button>
-    </div>
-  </div>
-
-  <div id="character-screen" class="screen hidden">
-    <div class="glass center-card wide">
-      <div class="title">Choose Your Fighter</div>
-      <div id="character-grid" class="grid"></div>
-      <div id="character-selected" class="selected-label"></div>
-      <div class="row">
-        <button id="char-back-btn" class="btn">Back</button>
-        <button id="char-next-btn" class="btn btn-primary" disabled>Next</button>
+    <div id="loading-screen" class="screen">
+      <div class="glass center-card">
+        <div class="title">Loading…</div>
       </div>
     </div>
-  </div>
 
-  <div id="map-screen" class="screen hidden">
-    <div id="map-bg" class="map-bg"></div>
-    <div class="scrim"></div>
-    <div class="glass title-pill">Choose Your Arena</div>
-    <div class="bottom-dock">
-      <div class="glass carousel">
-        <button id="map-prev-btn" class="btn btn-round">◀</button>
-        <div id="map-name" class="map-name">Map Name</div>
-        <button id="map-next-btn" class="btn btn-round">▶</button>
-      </div>
-      <div class="row center">
-        <button id="map-back-btn" class="btn">Back</button>
-        <button id="map-fight-btn" class="btn btn-fight">Fight!</button>
+    <div id="start-screen" class="screen hidden">
+      <div class="glass title-pill hero">STICK DUEL 3D</div>
+      <div class="bottom-dock">
+        <div class="subtitle">three.js edition</div>
+        <button id="start-btn" class="btn btn-primary">Local Practice</button>
+        <button id="mp-btn" class="btn">Multiplayer</button>
+        <button id="quit-btn" class="btn">Quit</button>
       </div>
     </div>
-  </div>
 
-  <div id="hud" class="screen hidden no-pointer">
-    <div class="glass stat-panel stat-panel-left">
-      <div class="stat-row"><span class="tag tag-hp">HP</span><div class="bar-wrap"><div id="hp-bar" class="bar bar-hp"></div><div id="hp-value" class="bar-value">100 / 100</div></div></div>
-      <div class="stat-row"><span class="tag tag-sp">SP</span><div class="bar-wrap"><div id="sp-bar" class="bar bar-sp"></div><div id="sp-value" class="bar-value">100 / 100</div></div></div>
+    <div id="lobby-screen" class="screen hidden">
+      <div class="glass title-pill">Multiplayer</div>
+      <div class="bottom-dock">
+        <div class="glass lobby-panel">
+          <input
+            id="server-field"
+            class="text-field"
+            type="text"
+            value="ws://127.0.0.1:9080"
+            placeholder="Relay server URL"
+          />
+          <button id="host-btn" class="btn btn-primary">Host Game</button>
+          <div class="row center">
+            <input
+              id="code-field"
+              class="text-field code-field"
+              type="text"
+              maxlength="4"
+              placeholder="CODE"
+            />
+            <button id="join-btn" class="btn">Join</button>
+          </div>
+          <div id="lobby-status" class="status-label"></div>
+        </div>
+        <div class="row center">
+          <button id="lobby-back-btn" class="btn">Back</button>
+        </div>
+      </div>
     </div>
-    <div class="glass stat-panel stat-panel-right">
-      <div class="stat-row"><span class="tag tag-hp">OPP HP</span><div class="bar-wrap"><div id="opp-hp-bar" class="bar bar-hp"></div></div></div>
-    </div>
-    <div class="controls-hint">Move: A / D&nbsp;&nbsp;&nbsp;Jump: W&nbsp;&nbsp;&nbsp;Attack 1: J&nbsp;&nbsp;&nbsp;Attack 2: K&nbsp;&nbsp;&nbsp;Special: L&nbsp;&nbsp;&nbsp;Pause: Esc</div>
-  </div>
 
-  <div id="pause-screen" class="screen hidden">
-    <div class="scrim"></div>
-    <div class="glass center-card">
-      <div class="title">Paused</div>
-      <button id="resume-btn" class="btn btn-primary">Resume</button>
-      <button id="pause-quit-btn" class="btn">Quit to Menu</button>
+    <div id="character-screen" class="screen hidden">
+      <div class="glass title-pill">Choose Your Fighter</div>
+      <div class="bottom-dock wide">
+        <div class="glass wide-panel">
+          <div id="character-grid" class="grid"></div>
+          <div id="character-selected" class="selected-label"></div>
+        </div>
+        <div class="row center">
+          <button id="char-back-btn" class="btn">Back</button>
+          <button id="char-next-btn" class="btn btn-primary" disabled>
+            Next
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div id="gameover-screen" class="screen hidden">
-    <div class="scrim"></div>
-    <div class="glass center-card">
-      <div id="gameover-title" class="title big">You Win!</div>
-      <button id="rematch-btn" class="btn btn-primary">Rematch</button>
-      <button id="gameover-quit-btn" class="btn">Quit to Menu</button>
+    <div id="map-screen" class="screen hidden">
+      <div id="map-bg" class="map-bg"></div>
+      <div class="scrim"></div>
+      <div class="glass title-pill">Choose Your Arena</div>
+      <div class="bottom-dock">
+        <div class="glass carousel">
+          <button id="map-prev-btn" class="btn btn-round">◀</button>
+          <div id="map-name" class="map-name">Map Name</div>
+          <button id="map-next-btn" class="btn btn-round">▶</button>
+        </div>
+        <div class="row center">
+          <button id="map-back-btn" class="btn">Back</button>
+          <button id="map-fight-btn" class="btn btn-fight">Fight!</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "./vendor/three.module.js"
-  }
-}
-</script>
-<script type="module" src="src/main.js"></script>
-</body>
+    <div id="hud" class="screen hidden no-pointer">
+      <div class="glass stat-panel stat-panel-left">
+        <div class="stat-row">
+          <span class="tag tag-hp">HP</span>
+          <div class="bar-wrap">
+            <div id="hp-bar" class="bar bar-hp"></div>
+            <div id="hp-value" class="bar-value">100 / 100</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <span class="tag tag-sp">SP</span>
+          <div class="bar-wrap">
+            <div id="sp-bar" class="bar bar-sp"></div>
+            <div id="sp-value" class="bar-value">100 / 100</div>
+          </div>
+        </div>
+      </div>
+      <div class="glass stat-panel stat-panel-right">
+        <div class="stat-row">
+          <span class="tag tag-hp">OPP HP</span>
+          <div class="bar-wrap">
+            <div id="opp-hp-bar" class="bar bar-hp"></div>
+          </div>
+        </div>
+      </div>
+      <div class="controls-hint">
+        Move: A / D&nbsp;&nbsp;&nbsp;Jump: W&nbsp;&nbsp;&nbsp;Attack 1:
+        J&nbsp;&nbsp;&nbsp;Attack 2: K&nbsp;&nbsp;&nbsp;Special:
+        L&nbsp;&nbsp;&nbsp;Pause: Esc
+      </div>
+    </div>
+
+    <div id="pause-screen" class="screen hidden">
+      <div class="scrim"></div>
+      <div class="glass center-card">
+        <div class="title">Paused</div>
+        <button id="resume-btn" class="btn btn-primary">Resume</button>
+        <button id="pause-quit-btn" class="btn">Quit to Menu</button>
+      </div>
+    </div>
+
+    <div id="gameover-screen" class="screen hidden">
+      <div class="scrim"></div>
+      <div class="glass center-card">
+        <div id="gameover-title" class="title big">You Win!</div>
+        <button id="rematch-btn" class="btn btn-primary">Rematch</button>
+        <button id="gameover-quit-btn" class="btn">Quit to Menu</button>
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="src/main.js"></script>
+  </body>
 </html>
