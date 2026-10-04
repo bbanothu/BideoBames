@@ -219,7 +219,7 @@ kbd {
 #st-bar {
   position: absolute;
   left: 50%;
-  bottom: 12.5vh;
+  bottom: 23vh;
   width: 26vw;
   max-width: 440px;
   height: 7px;
@@ -1134,6 +1134,93 @@ button:disabled {
 }
 .inv-actions button {
   min-width: 180px;
+}
+
+/* Ozrael's shop */
+.shop {
+  height: auto;
+  max-height: 94vh;
+}
+.shop-head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  font-size: 32px;
+}
+.shop-body {
+  display: grid;
+  grid-template-columns: 0.8fr 1.4fr;
+  gap: 36px;
+  padding: 22px 4px 14px;
+}
+.shop-talk {
+  text-align: center;
+}
+.shop-kanji {
+  font: 400 150px/1 var(--kanji);
+  color: #c42a26;
+  text-shadow: 0 0 30px rgba(220, 40, 30, 0.6);
+}
+#shop-line {
+  min-height: 110px;
+  margin: 16px 0 0;
+  font-size: 22px;
+  font-style: italic;
+  line-height: 1.4;
+}
+#shop-souls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 26px;
+}
+#shop-souls small {
+  font-size: 17px;
+  color: var(--muted);
+}
+#shop-souls .icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(#fff, #9fc4ff 50%, transparent 72%);
+  box-shadow: 0 0 10px #bcd4ff;
+}
+.ware {
+  gap: 16px;
+  padding: 10px 14px;
+}
+.ware .ic.big {
+  flex: none;
+  margin: 0 6px;
+}
+.ware-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.ware-text small {
+  font-size: 16px;
+  color: var(--muted);
+}
+.ware-have {
+  width: 70px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ware-have b {
+  font-size: 18px;
+  color: var(--ink);
+}
+.ware button {
+  min-width: 110px;
+  padding: 10px 14px;
+  font-size: 19px;
+}
+.ware.dim {
+  opacity: 0.55;
 }
 
 /* Level-up (bonfire) */

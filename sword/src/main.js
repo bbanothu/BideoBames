@@ -8,6 +8,7 @@ import { Multiplayer } from "./mp.js";
 import { Spells } from "./spells.js";
 import { Loot, ITEMS } from "./loot.js";
 import { Menu, installTheme, loadSettings } from "./menu.js";
+import { Merchant } from "./merchant.js";
 import { CLASSES, CLASS_IDS, SKILLS, SPECIALS } from "./classes.js";
 import { World } from "./world.js";
 import { Player } from "./player.js";
@@ -53,6 +54,7 @@ class Game {
     this.gore = new Gore(this);
     this.spells = new Spells(this);
     this.loot = new Loot(this);
+    this.merchant = new Merchant(this, -11.6, -3, Math.PI / 2);
     this.arrows = new Arrows(this, assets?.bow);
     this.player = new Player(this);
     this.enemies = this.world.spawns.map((s) => new Enemy(this, s));
@@ -101,6 +103,7 @@ class Game {
     this.lastBonfire = "b1";
     p.applyClass(s?.cls || this.pendingClass || "warrior", !s);
     p.inv = { hpvial: 0, mpvial: 0, regrow: s ? 0 : 1, ...(s?.inv || {}) };
+    p.estusMax = Math.min(8, s?.estusMax ?? 4);
     if (s) {
       Object.assign(p.stats, s.stats);
       p.souls = s.souls ?? 0;
@@ -119,6 +122,7 @@ class Game {
     const p = this.player;
     const data = {
       cls: p.clsId,
+      estusMax: p.estusMax,
       inv: p.inv,
       arrows: p.arrows,
       stats: p.stats,
@@ -301,6 +305,25 @@ class Game {
     this.save();
     this.audio.stopMusic();
     this.toTitle();
+  }
+
+  // Ozrael's shop: pauses like a bonfire.
+  openShop() {
+    this.state = "shop";
+    this.hud.setPrompt(null);
+    this.player.vel.set(0, 0, 0);
+    this.input.lockWanted = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.showScreen("shop");
+    this.merchant.open();
+  }
+
+  closeShop() {
+    this.showScreen(null);
+    this.state = "playing";
+    this.input.lockWanted = true;
+    this.input.requestLock();
+    this.last = performance.now();
   }
 
   toggleInventory() {
@@ -1032,6 +1055,7 @@ class Game {
   nearestInteraction() {
     const p = this.player;
     if (p.state !== "idle" || this.mp) return null;
+    if (distXZ(p.pos, this.merchant.pos) < 3.2) return { text: "Talk to Ozrael", act: () => this.openShop() };
     for (const b of this.world.bonfires) if (distXZ(p.pos, b.pos) < 2.4) return { text: b.lit ? "Rest at bonfire" : "Light bonfire", act: () => this.restAt(b) };
     const bs = this.bloodstain;
     if (bs && Math.hypot(p.pos.x - bs.x, p.pos.z - bs.z) < 1.6)
@@ -1109,6 +1133,13 @@ class Game {
       return;
     }
     if (this.state === "paused") return;
+    if (this.state === "shop") {
+      if (inp.pause || inp.interact) this.closeShop();
+      this.world.update(dt, p.pos);
+      this.merchant.update(dt);
+      this.particles.update(dt);
+      return;
+    }
     if (this.state === "menu") {
       if (inp.stat) this.levelUp(["vig", "end", "str", "arc"][inp.stat - 1]);
       if (inp.interact || inp.pause) this.leaveBonfire();
@@ -1175,6 +1206,7 @@ class Game {
     }
 
     this.fx = this.fx.filter((f) => f(dt));
+    this.merchant.update(dt);
     this.arrows.update(dt);
     this.loot.update(dt);
     this.world.update(dt, p.pos);

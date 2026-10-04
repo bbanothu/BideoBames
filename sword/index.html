@@ -6,7 +6,7 @@
     <title>Ashen Oath</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E6%AD%BB%E6%95%97%E5%8B%9D%E5%90%BC%E9%9C%87%E7%AA%81%E5%BD%B1%E7%85%99%E6%AF%92%E5%85%89%E7%99%92%E8%81%96%E6%80%92%E6%97%8B%E5%90%B8%E5%B1%8D%E7%88%86%E6%96%AC%E6%AE%BA%E7%BD%B0%E9%AD%82%E7%9F%A2&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E6%AD%BB%E6%95%97%E5%8B%9D%E5%90%BC%E9%9C%87%E7%AA%81%E5%BD%B1%E7%85%99%E6%AF%92%E5%85%89%E7%99%92%E8%81%96%E6%80%92%E6%97%8B%E5%90%B8%E5%B1%8D%E7%88%86%E6%96%AC%E6%AE%BA%E7%BD%B0%E9%AD%82%E7%9F%A2%E9%AD%94&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script type="importmap">
       { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -93,6 +93,17 @@
           </div>
         </div>
         <div class="board-foot"><span id="menu-desc"></span><span class="prompts"><kbd>Esc</kbd> Close</span></div>
+      </div>
+    </div>
+
+    <div id="shop" class="screen hidden">
+      <div class="panel board shop">
+        <div class="shop-head">Ozrael, the Chained</div>
+        <div class="shop-body">
+          <div class="shop-talk"><div class="shop-kanji">魔</div><p id="shop-line"></p></div>
+          <div class="shop-wares"><div id="shop-souls"></div><div id="shop-stock"></div></div>
+        </div>
+        <div class="board-foot"><span>Souls for wares. All sales are final.</span><span class="prompts"><kbd>Esc</kbd> Leave</span></div>
       </div>
     </div>
 
