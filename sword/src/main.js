@@ -106,6 +106,7 @@ class Game {
     this.lastBonfire = "b1";
     this.mp = null;
     this.mpMenu = false;
+    this.slainWraiths = new Set();
 
     installTheme();
     this.settings = loadSettings();
@@ -639,7 +640,7 @@ class Game {
         if (tg.isRemote) this.hitRemote(att, tg, def, mul);
         else if (tg.isPlayer) {
           if (tg.invulnerable()) continue;
-          this.hitPlayer(att, def.dmg * mul, { knockdown: def.knockdown || (att.isBoss && def.dmg >= 150), style: def.style });
+          this.hitPlayer(att, def.dmg * mul, { knockdown: def.knockdown || (att.big && def.dmg >= 150), style: def.style });
         } else this.hitEnemy(att, tg, def, mul);
       }
     });
@@ -717,6 +718,7 @@ class Game {
 
   removeEnemy(e) {
     if (this.lockTarget === e) this.lockTarget = null;
+    if (this.hud.bossEnemy === e) this.hud.setBoss(null);
     e.dispose();
     this.enemies.splice(this.enemies.indexOf(e), 1);
     this.hud.bars.get(e)?.remove();
@@ -724,7 +726,7 @@ class Game {
   }
 
   hitEnemy(p, e, def, mul) {
-    const behind = (p.isPlayer && p.forceCrit && !e.isBoss) || (Math.abs(wrapAngle(angleTo(e.pos, p.pos) - e.facing)) > 2.3 && e.state !== "attack" && !e.isBoss);
+    const behind = (p.isPlayer && p.forceCrit && !e.big) || (Math.abs(wrapAngle(angleTo(e.pos, p.pos) - e.facing)) > 2.3 && e.state !== "attack" && !e.big);
     const dmg = def.dmg * mul * (p.outMul ?? 1) * (behind ? p.cls?.crit ?? 1.6 : 1);
     const guarded = e.receiveHit(dmg, def.poise, p);
     if (!guarded && p.isPlayer) e.bleed += p.onDealtMelee(dmg) * e.T.bleedMul;
@@ -821,7 +823,7 @@ class Game {
       return;
     }
     let dmg = 40 * (0.4 + 0.6 * arrow.power) * p.dmgMul * { head: 2.5, torso: 1, arm: 0.7, leg: 0.7 }[part];
-    if (part === "head" && !e.isBoss && arrow.power > 0.5) {
+    if (part === "head" && !e.big && arrow.power > 0.5) {
       dmg = e.hp + 1;
       this.hud.toast("Headshot", 900);
     }
@@ -902,11 +904,19 @@ class Game {
     p.souls += e.T.souls;
     if (this.lockTarget === e) this.lockTarget = this.findLockTarget(e);
     const from = e.pos.clone();
-    const n = e.isBoss ? 220 : 40;
+    const n = e.big ? 220 : 40;
     for (let i = 0; i < n; i++)
       this.particles.emit(from.x + (Math.random() - 0.5), 0.5 + Math.random() * 1.5 * e.T.scale, from.z + (Math.random() - 0.5), (Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6, 3, 0.09, 0.75, 0.85, 1, 1, 0, 0, p.pos);
     setTimeout(() => this.audio.souls(), 400);
     if (e.isBoss) this.onBossDefeated();
+    else if (e.T.wildBoss) {
+      // Slain field bosses stay dead for the session.
+      this.slainWraiths.add(e.key);
+      setTimeout(() => {
+        if (this.hud.bossEnemy === e) this.hud.setBoss(null);
+        this.hud.showBanner("ENEMY FELLED", "felled", 4000);
+      }, 1200);
+    }
   }
 
   onBossDefeated() {

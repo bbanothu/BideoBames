@@ -80,6 +80,8 @@ export class Player extends Actor {
     this.T.bleedMul = c.bleedMul ?? 1;
     if (resetStats) this.stats = { ...c.stats };
     this.h.setWeaponModel(this.game.assets?.classWeapons?.[c.weapon]);
+    this.h.setSkinnedModel(this.game.assets?.bodies?.[c.model]);
+    this.h.cloth?.reset();
     this.h.equip(this.mode || "sword");
     this.recompute();
   }

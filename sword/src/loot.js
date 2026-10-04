@@ -12,6 +12,7 @@ export const ITEMS = {
 const TABLES = {
   hollow: [["hpvial", 0.3, 1, 1], ["mpvial", 0.25, 1, 1], ["arrows", 0.45, 2, 5], ["regrow", 0.04, 1, 1]],
   knight: [["hpvial", 0.75, 1, 2], ["mpvial", 0.55, 1, 2], ["arrows", 0.65, 4, 8], ["regrow", 0.3, 1, 1]],
+  wraith: [["hpvial", 1, 2, 2], ["mpvial", 1, 2, 2], ["arrows", 1, 8, 8], ["regrow", 0.6, 1, 1]],
   boss: [["hpvial", 1, 3, 3], ["mpvial", 1, 3, 3], ["arrows", 1, 12, 12], ["regrow", 1, 2, 2]],
 };
 

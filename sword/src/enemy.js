@@ -26,6 +26,21 @@ export const TYPES = {
     cooldown: [0.9, 2.0],
     guard: true,
   },
+  // A rare field boss roaming the wilds: the rigged skeleton (villain_1).
+  wraith: {
+    name: "Bone Wraith", hp: 1150, scale: 2.1, radius: 0.85, walk: 2.6, run: 5.2, turn: 2.8, souls: 3500, poise: 200, aggro: 22, limbHp: 240, bleedMul: 0.35,
+    body: "villain_1", glow: 0x6ad0ff,
+    look: { armor: 0xd8d0c0, cloth: 0x222222, skin: 0xd8d0c0, leather: 0x222222, helm: "hollow", weapon: "greatsword", blade: 0x8a8278, metal: 0x4a4038 },
+    attacks: [
+      { id: "b_sweep", min: 0, max: 5.2, w: 3 },
+      { id: "b_over", min: 0, max: 5.4, w: 3 },
+      { id: "b_combo", min: 0, max: 5.0, w: 2 },
+      { id: "b_thrust", min: 4.5, max: 11, w: 3 },
+      { id: "b_leap", min: 8, max: 18, w: 4, phase: 2 },
+    ],
+    cooldown: [0.6, 1.4],
+    wildBoss: true,
+  },
   boss: {
     name: "Ashen Warden", hp: 1750, scale: 2.15, radius: 0.95, walk: 2.3, run: 4.8, turn: 2.4, souls: 6000, poise: 260, aggro: 999, limbHp: 320, bleedMul: 0.35,
     look: { armor: 0x57514b, cloth: 0x5a1a14, skin: 0x6a5a4a, leather: 0x241a14, helm: "boss", weapon: "greatsword", eyes: 0xff5a10, metal: 0x5a4a3a, blade: 0x6a6460, cape: true },
@@ -45,10 +60,12 @@ export const TYPES = {
 export class Enemy extends Actor {
   constructor(game, spawn) {
     const T = TYPES[spawn.type];
-    super(game, new Humanoid({ ...T.look, scale: T.scale }), T.radius);
+    super(game, new Humanoid({ ...T.look, scale: T.scale, skinModel: T.body ? game.assets?.bodies?.[T.body] : undefined }), T.radius);
     this.T = T;
     this.type = spawn.type;
-    this.isBoss = !!T.boss;
+    this.isBoss = !!T.boss; // the Warden: arena, fog gate, fight music
+    this.big = !!(T.boss || T.wildBoss); // any boss: phases, poise, boss bar
+    this.key = spawn.key;
     this.spawn = new THREE.Vector3(spawn.x, game.world.heightAt(spawn.x, spawn.z), spawn.z);
     this.wild = !!spawn.wild;
     // Raised by a necromancer: hunts other enemies, follows the player, crumbles after a while.
@@ -164,11 +181,11 @@ export class Enemy extends Actor {
           this.setState(this.isBoss ? "idle" : "return");
           break;
         }
-        if (!this.isBoss && !this.ally && distXZ(this.pos, this.spawn) > 30) {
+        if (!this.isBoss && !this.ally && distXZ(this.pos, this.spawn) > (this.big ? 60 : 30)) {
           this.setState("return");
           break;
         }
-        if (this.isBoss && this.phase === 1 && this.hp < this.maxHp * 0.5) {
+        if (this.big && this.phase === 1 && this.hp < this.maxHp * 0.5) {
           this.enterPhase2();
           break;
         }
@@ -190,7 +207,7 @@ export class Enemy extends Actor {
           }
         }
         let speed;
-        if (this.isBoss) speed = dist > 14 ? T.run : dist > 3.8 ? T.walk * (this.phase === 2 ? 1.35 : 1) : 0;
+        if (this.big) speed = dist > 14 ? T.run : dist > 3.8 ? T.walk * (this.phase === 2 ? 1.35 : 1) : 0;
         else if (dist > 5.5) speed = T.run;
         else if (this.cooldown > 0) {
           this.strafeDir = Math.random() < 0.5 ? 1 : -1;
@@ -238,7 +255,7 @@ export class Enemy extends Actor {
         } else this.yOff = 0;
         if (a.hits.length && !this.swung && ts >= a.hits[0][0] - 0.1) {
           this.swung = true;
-          g.audio.swing(this.isBoss);
+          g.audio.swing(this.big);
         }
         for (const [et, name] of a.events) if (this.lastTs < et && ts >= et) this.onEvent(name);
         if (a.charge && ts >= a.charge[0] && ts <= a.charge[1]) this.chargeFx(dt, (ts - a.charge[0]) / (a.charge[1] - a.charge[0]));
@@ -249,7 +266,7 @@ export class Enemy extends Actor {
           this.yOff = 0;
           const [c0, c1] = T.cooldown;
           this.cooldown = rand(c0, c1) * (this.phase === 2 ? 0.6 : 1);
-          if (this.isBoss && this.phase === 2 && Math.random() < 0.3) this.cooldown = 0.15;
+          if (this.big && this.phase === 2 && Math.random() < 0.3) this.cooldown = 0.15;
           this.setState("chase");
         }
         break;
@@ -306,7 +323,8 @@ export class Enemy extends Actor {
       }
     }
 
-    if (this.isBoss && this.phase === 2 && this.alive && Math.random() < 0.7) this.flameAlongBlade();
+    if (this.big && this.phase === 2 && this.alive && Math.random() < 0.7) this.flameAlongBlade();
+    if (this.T.wildBoss) this.bossBar(dist);
 
     if (!["dead", "roar"].includes(this.state)) this.injuryPose(pose);
     if (this.state !== "dead") this.physics(dt);
@@ -361,9 +379,11 @@ export class Enemy extends Actor {
       if (d.length() > 15) d.setLength(15);
       d.setLength(Math.max(0, d.length() - 1.5));
       this.leapTo = this.pos.clone().add(d);
-      const A = g.world.arena;
-      this.leapTo.x = clamp(this.leapTo.x, A.minX, A.maxX);
-      this.leapTo.z = clamp(this.leapTo.z, A.minZ, A.maxZ);
+      if (this.isBoss) {
+        const A = g.world.arena;
+        this.leapTo.x = clamp(this.leapTo.x, A.minX, A.maxX);
+        this.leapTo.z = clamp(this.leapTo.z, A.minZ, A.maxZ);
+      }
       g.audio.roar();
     } else if (name === "leapLand") {
       this.yOff = 0;
@@ -412,14 +432,14 @@ export class Enemy extends Actor {
     this.poiseT = 3;
     if (!guarded && this.poiseCur >= this.T.poise && poiseDmg > 0) {
       this.poiseCur = 0;
-      this.hitDur = this.isBoss ? 1.4 : 0.6;
+      this.hitDur = this.big ? 1.4 : 0.6;
       const away = new THREE.Vector3(this.pos.x - attacker.pos.x, 0, this.pos.z - attacker.pos.z).normalize();
-      this.vel.copy(away).multiplyScalar(this.isBoss ? 1.5 : 3);
+      this.vel.copy(away).multiplyScalar(this.big ? 1.5 : 3);
       this.yOff = 0;
       this.setState("hit");
-      if (this.isBoss) g.hud.toast("Staggered!");
+      if (this.big) g.hud.toast("Staggered!");
     }
-    if (this.isBoss && this.phase === 1 && this.hp < this.maxHp * 0.5 && this.state !== "attack") this.enterPhase2();
+    if (this.big && this.phase === 1 && this.hp < this.maxHp * 0.5 && this.state !== "attack") this.enterPhase2();
     return guarded;
   }
 
@@ -457,16 +477,29 @@ export class Enemy extends Actor {
     // Losing a limb always staggers, and losing the sword arm ends whatever swing was coming.
     this.yOff = 0;
     this.leapFrom = null;
-    this.hitDur = this.isBoss ? 1.2 : 0.8;
+    this.hitDur = this.big ? 1.2 : 0.8;
     this.setState("hit");
   }
 
   enterPhase2() {
     this.phase = 2;
     this.speedMul = 1.2;
-    this.h.setGlow(0xff5a10);
+    this.h.setGlow(this.T.glow ?? 0xff5a10);
     this.game.audio.roar();
     this.setState("roar");
+  }
+
+  // Field bosses take over the boss bar while they're fighting you.
+  bossBar(dist) {
+    const hud = this.game.hud;
+    const engaged = this.alive && ["chase", "attack", "hit", "roar"].includes(this.state) && dist < 32 && !this.game.bossFight;
+    if (engaged && hud.bossEnemy !== this) {
+      hud.setBoss(this);
+      if (!this.announced) {
+        this.announced = true;
+        hud.toast(`${this.T.name} rises from the grass`, 2200);
+      }
+    } else if (!engaged && hud.bossEnemy === this) hud.setBoss(null);
   }
 
   die() {

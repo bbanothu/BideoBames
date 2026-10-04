@@ -115,7 +115,7 @@ export class Spells {
       const d = Math.hypot(f.pos.x - center.x, f.pos.z - center.z);
       if (d > N.r + f.radius) continue;
       g.damageFoe(f, N.dmg * mul * (1 - 0.4 * (d / N.r)), 90, center, true);
-      if (!f.isRemote && !f.isBoss) f.vel.addScaledVector(new THREE.Vector3(f.pos.x - center.x, 0, f.pos.z - center.z).normalize(), 9);
+      if (!f.isRemote && !f.big) f.vel.addScaledVector(new THREE.Vector3(f.pos.x - center.x, 0, f.pos.z - center.z).normalize(), 9);
     }
     if (N.healSelf) p.healBy(p.maxHp * N.healSelf);
   }

@@ -1,3 +1,5 @@
+// Each class's body (char_N from blender/) was assigned at random once, then fixed so every
+// player in a match sees the same thing.
 // The five classes: starting stats, weapon, passive, three mana skills (keys 1/2/3) and a special (V).
 
 export const SKILLS = {
@@ -30,35 +32,35 @@ export const CLASSES = {
     name: "Warrior", blurb: "Frontline fighter in heavy armour. Hard to kill, hits hard.",
     stats: { vig: 14, end: 12, str: 12, arc: 6 }, weapon: "sword",
     passive: "Iron Will — takes 20% less damage; blocking costs less stamina.",
-    skills: ["warcry", "slam", "charge"], special: "cleave",
+    skills: ["warcry", "slam", "charge"], special: "cleave", model: "char_4",
     atkSpeed: 1, atkDmg: 1, range: 1, dmgTaken: 0.8, crit: 1.6, tint: 0xffffff,
   },
   rogue: {
     name: "Rogue", blurb: "Stealthy and quick. Daggers, ambushes and brutal critical hits.",
     stats: { vig: 11, end: 14, str: 11, arc: 8 }, weapon: "dagger",
     passive: "Assassin — critical hits from behind deal 2.6× damage; cheaper rolls.",
-    skills: ["step", "veil", "venom"], special: "assassinate",
+    skills: ["step", "veil", "venom"], special: "assassinate", model: "char_1",
     atkSpeed: 1.4, atkDmg: 0.72, range: 0.78, dmgTaken: 1, crit: 2.6, rollCost: 14, tint: 0xb8c0d0,
   },
   cleric: {
     name: "Cleric", blurb: "Healer and holy warrior. Mends wounds and smites with light.",
     stats: { vig: 12, end: 10, str: 9, arc: 13 }, weapon: "mace",
     passive: "Blessed — slowly regenerates health; bleeds half as fast.",
-    skills: ["holybolt", "heal", "sanctuary"], special: "smite",
+    skills: ["holybolt", "heal", "sanctuary"], special: "smite", model: "ritual",
     atkSpeed: 0.95, atkDmg: 0.95, range: 0.9, dmgTaken: 0.9, crit: 1.6, regen: 1.5, bleedMul: 0.5, tint: 0xfff2d8,
   },
   berserker: {
     name: "Berserker", blurb: "Reckless bruiser. Trades defence for raw damage, fuelled by rage.",
     stats: { vig: 12, end: 11, str: 16, arc: 5 }, weapon: "axe",
     passive: "Bloodlust — up to +60% damage as health drops; takes 15% more damage.",
-    skills: ["rage", "slam", "whirl"], special: "cleave",
+    skills: ["rage", "slam", "whirl"], special: "cleave", model: "char_2",
     atkSpeed: 0.85, atkDmg: 1.45, range: 1.15, dmgTaken: 1.15, crit: 1.6, bloodlust: true, tint: 0xffc8b8,
   },
   necromancer: {
     name: "Necromancer", blurb: "Dark caster. Raises the dead and drains the living.",
     stats: { vig: 9, end: 10, str: 8, arc: 17 }, weapon: "staff",
     passive: "Soul Siphon — every kill restores 10 mana.",
-    skills: ["drain", "raise", "corpse"], special: "soulrend",
+    skills: ["drain", "raise", "corpse"], special: "soulrend", model: "char_3",
     atkSpeed: 0.9, atkDmg: 0.65, range: 1.05, dmgTaken: 1, crit: 1.6, manaOnKill: 10, tint: 0xc8b8e8,
   },
 };

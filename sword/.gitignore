@@ -2,3 +2,6 @@ blender/build.log
 *.blend1
 assets/source/
 node_modules/
+blender/char_*
+blender/villain_*.zip
+blender/build_*.log

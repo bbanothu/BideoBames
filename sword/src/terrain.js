@@ -416,6 +416,12 @@ export class Terrain {
       if (levelDist(x, z) < 12) continue;
       ch.enemies.push(g.spawnEnemy({ type: r() < 0.12 ? "knight" : "hollow", x, z, f: r() * 6.28, wild: true }));
     }
+    // ~1 in 14 chunks is haunted by a Bone Wraith (same chunks every time), until it's slain.
+    const key = ch.cx + "," + ch.cz;
+    if (r() < 0.07 && !g.slainWraiths?.has(key)) {
+      const x = ch.cx * CHUNK + 32, z = ch.cz * CHUNK + 32;
+      if (levelDist(x, z) > 40 && heightAt(x, z) > WATER_LEVEL + 0.5) ch.enemies.push(g.spawnEnemy({ type: "wraith", x, z, f: r() * 6.28, wild: true, key }));
+    }
   }
 
   despawnEnemies(ch) {

@@ -67,6 +67,8 @@ export class RemotePlayer {
     if (cls !== this.cls) {
       this.cls = cls;
       this.h.setWeaponModel(this.game.assets?.classWeapons?.[CLASSES[cls].weapon]);
+      this.h.setSkinnedModel(this.game.assets?.bodies?.[CLASSES[cls].model]);
+      if (this.tint) this.h.setTint(...this.tint);
       this.h.equip(this.mode);
       this.T.name = `${this.name} · ${CLASSES[cls].name}`;
     }

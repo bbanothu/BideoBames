@@ -197,8 +197,8 @@ export class Hud {
     const be = this.bossEnemy;
     if (be) {
       // Vitality nodes: the Warden has two lives (phases); a player-One has one.
-      const lives = be.isBoss ? 2 : 1;
-      const left = be.isBoss ? (be.phase === 2 ? 1 : 2) : be.alive ? 1 : 0;
+      const lives = be.big ? 2 : 1;
+      const left = be.big ? (be.phase === 2 ? 1 : 2) : be.alive ? 1 : 0;
       const dk = lives + "/" + left;
       if (dk !== this.dotKey) {
         this.dotKey = dk;
@@ -232,7 +232,7 @@ export class Hud {
     const others = g.mp ? [...g.mp.peers.values()] : [];
     for (const e of [...g.enemies, ...others]) {
       let el = this.bars.get(e);
-      if (e.isBoss || (e.isRemote && e === this.bossEnemy)) {
+      if (e.isBoss || e === this.bossEnemy) {
         if (el) el.style.display = "none";
         continue;
       }

@@ -586,7 +586,10 @@ export class Humanoid {
     this.rHip = rl.hip;
     this.rKnee = rl.knee;
 
-    if (o.skinModel) this.useSkinnedModel(o.skinModel);
+    if (o.skinModel) {
+      this.skinSource = o.skinModel;
+      this.useSkinnedModel(o.skinModel);
+    }
     else if (o.model) this.useBodyModel(o.model);
 
     this.cuts = [];
@@ -718,11 +721,12 @@ export class Humanoid {
 
   // Team colouring for multiplayer (multiplies the body's texture).
   setTint(color, emissive = 0x000000) {
-    const m = this.skin ? this.skin.material : this.matsByName.armor;
-    m.color.set(color);
-    m.emissive.set(emissive);
-    const i = this.mats.indexOf(m);
-    if (i >= 0) this.baseEmissive[i].copy(m.emissive);
+    for (const m of this.skins ? this.skins.map((k) => k.material) : [this.matsByName.armor]) {
+      m.color.set(color);
+      m.emissive.set(emissive);
+      const i = this.mats.indexOf(m);
+      if (i >= 0) this.baseEmissive[i].copy(m.emissive);
+    }
   }
 
   // Remove the primitive body meshes (keeping the weapon and flask).
@@ -750,11 +754,11 @@ export class Humanoid {
   // groups, so all existing poses, IK and dismemberment drive it directly.
   useSkinnedModel(scene) {
     this.stripBody();
-    let src = null;
-    scene.traverse((o) => {
-      if (o.isSkinnedMesh && !src) src = o;
-    });
-    if (!src) return;
+    // A model may be several skinned pieces (one per material) sharing one skeleton.
+    const srcs = [];
+    scene.traverse((o) => o.isSkinnedMesh && srcs.push(o));
+    if (!srcs.length) return;
+    const src = srcs[0];
     scene.updateMatrixWorld(true);
     const B = Object.fromEntries(src.skeleton.bones.map((b) => [b.name, b.getWorldPosition(new THREE.Vector3())]));
     const pel = B.hips;
@@ -799,16 +803,19 @@ export class Humanoid {
     this.L1 = (L1s[0] + L1s[1]) / 2;
     this.L2 = (L2s[0] + L2s[1]) / 2;
 
-    const mat = src.material.clone();
-    // The sculpt ships with a 2x specular boost that turns the robe into wet plastic under torchlight.
-    if (mat.specularColor) mat.specularColor.setScalar(0.6);
-    this.mats.push(mat);
-    this.baseEmissive.push(mat.emissive.clone());
-    this.baseEmissiveI.push(mat.emissiveIntensity);
-    const mesh = new THREE.SkinnedMesh(src.geometry, mat);
-    mesh.castShadow = mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    this.root.add(mesh);
+    const meshes = srcs.map((sm) => {
+      const mat = sm.material.clone();
+      // Some sculpts ship with a 2x specular boost that reads as wet plastic under torchlight.
+      if (mat.specularColor && mat.specularColor.r > 1) mat.specularColor.setScalar(0.6);
+      this.mats.push(mat);
+      this.baseEmissive.push(mat.emissive.clone());
+      this.baseEmissiveI.push(mat.emissiveIntensity);
+      const mesh = new THREE.SkinnedMesh(sm.geometry, mat);
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
+      this.root.add(mesh);
+      return mesh;
+    });
     const map = this.jointMap();
     this.root.updateMatrixWorld(true);
     // Skirt strands (bones "skirt_<strand>_<node>") become free-floating bones posed by the cloth sim.
@@ -824,62 +831,89 @@ export class Humanoid {
       map[b.name] = bone;
     }
     const bones = src.skeleton.bones.map((b) => map[b.name] || this.body);
-    mesh.bind(new THREE.Skeleton(bones, bones.map((g) => g.matrixWorld.clone().invert())), mesh.matrixWorld);
-    this.skin = mesh;
-    if (strands.length) this.cloth = new SkirtCloth(this, strands);
-    // Dominant joint per vertex, for carving severed pieces out of the skin.
-    const si = src.geometry.attributes.skinIndex;
-    const sw = src.geometry.attributes.skinWeight;
-    this.domBone = new Uint16Array(si.count);
-    for (let i = 0; i < si.count; i++) {
-      let best = 0;
-      for (let j = 1; j < 4; j++) if (sw.getComponent(i, j) > sw.getComponent(i, best)) best = j;
-      this.domBone[i] = si.getComponent(i, best);
-    }
-  }
-
-  // Bake the skin triangles owned by `obj`'s subtree, in their current pose, into a loose mesh.
-  carveSkin(obj) {
-    const mesh = this.skin;
-    const geo = mesh.geometry;
-    const sub = new Set();
-    obj.traverse((o) => sub.add(o));
-    const bones = mesh.skeleton.bones;
-    const inSub = (i) => sub.has(bones[this.domBone[i]]);
-    this.root.updateMatrixWorld(true);
-    mesh.skeleton.update();
-    const pivot = obj.getWorldPosition(new THREE.Vector3());
-    const pos = geo.attributes.position;
-    const uv = geo.attributes.uv;
-    const idx = geo.index;
-    const remap = new Map();
-    const P = [];
-    const U = [];
-    const I = [];
-    const v = new THREE.Vector3();
-    for (let t = 0; t < idx.count; t += 3) {
-      const a = idx.getX(t), b = idx.getX(t + 1), c = idx.getX(t + 2);
-      if (!(inSub(a) && inSub(b) && inSub(c))) continue;
-      for (const i of [a, b, c]) {
-        if (!remap.has(i)) {
-          v.fromBufferAttribute(pos, i);
-          mesh.applyBoneTransform(i, v);
-          v.applyMatrix4(mesh.matrixWorld).sub(pivot);
-          remap.set(i, P.length / 3);
-          P.push(v.x, v.y, v.z);
-          if (uv) U.push(uv.getX(i), uv.getY(i));
-        }
-        I.push(remap.get(i));
+    const skeleton = new THREE.Skeleton(bones, bones.map((g) => g.matrixWorld.clone().invert()));
+    for (const mesh of meshes) {
+      mesh.bind(skeleton, mesh.matrixWorld);
+      // Dominant joint per vertex, for carving severed pieces out of the skin.
+      const si = mesh.geometry.attributes.skinIndex;
+      const sw = mesh.geometry.attributes.skinWeight;
+      const dom = (mesh.userData.domBone = new Uint16Array(si.count));
+      for (let i = 0; i < si.count; i++) {
+        let best = 0;
+        for (let j = 1; j < 4; j++) if (sw.getComponent(i, j) > sw.getComponent(i, best)) best = j;
+        dom[i] = si.getComponent(i, best);
       }
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
-    if (uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
-    g.setIndex(I);
-    g.computeVertexNormals();
-    const piece = new THREE.Mesh(g, mesh.material);
-    piece.castShadow = true;
+    this.skins = meshes;
+    this.skin = meshes[0];
+    this.cloth = strands.length ? new SkirtCloth(this, strands) : null;
+  }
+
+  // Swap to a different skinned model at runtime (class change, another player's class).
+  setSkinnedModel(scene) {
+    if (!scene || scene === this.skinSource) return;
+    this.restore();
+    for (const m of this.skins || []) {
+      m.removeFromParent();
+      const i = this.mats.indexOf(m.material);
+      if (i >= 0) {
+        this.mats.splice(i, 1);
+        this.baseEmissive.splice(i, 1);
+        this.baseEmissiveI.splice(i, 1);
+      }
+    }
+    this.skinSource = scene;
+    this.useSkinnedModel(scene);
+  }
+
+  // Bake the skin triangles owned by `obj`'s subtree, in their current pose, into loose meshes.
+  carveSkin(obj) {
+    const sub = new Set();
+    obj.traverse((o) => sub.add(o));
+    this.root.updateMatrixWorld(true);
+    const pivot = obj.getWorldPosition(new THREE.Vector3());
+    const piece = new THREE.Group();
     piece.position.copy(pivot);
+    for (const mesh of this.skins) {
+      const geo = mesh.geometry;
+      const bones = mesh.skeleton.bones;
+      const dom = mesh.userData.domBone;
+      const inSub = (i) => sub.has(bones[dom[i]]);
+      mesh.skeleton.update();
+      const pos = geo.attributes.position;
+      const uv = geo.attributes.uv;
+      const idx = geo.index;
+      if (!idx) continue;
+      const remap = new Map();
+      const P = [];
+      const U = [];
+      const I = [];
+      const v = new THREE.Vector3();
+      for (let t = 0; t < idx.count; t += 3) {
+        const a = idx.getX(t), b = idx.getX(t + 1), c = idx.getX(t + 2);
+        if (!(inSub(a) && inSub(b) && inSub(c))) continue;
+        for (const i of [a, b, c]) {
+          if (!remap.has(i)) {
+            v.fromBufferAttribute(pos, i);
+            mesh.applyBoneTransform(i, v);
+            v.applyMatrix4(mesh.matrixWorld).sub(pivot);
+            remap.set(i, P.length / 3);
+            P.push(v.x, v.y, v.z);
+            if (uv) U.push(uv.getX(i), uv.getY(i));
+          }
+          I.push(remap.get(i));
+        }
+      }
+      if (!I.length) continue;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+      if (uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
+      g.setIndex(I);
+      g.computeVertexNormals();
+      const m = new THREE.Mesh(g, mesh.material);
+      m.castShadow = true;
+      piece.add(m);
+    }
     return piece;
   }
 
@@ -965,7 +999,7 @@ export class Humanoid {
           hld.item.scale.set(1, 1, 1);
         }
         c.obj.removeFromParent();
-        c.obj.geometry.dispose();
+        c.obj.traverse((o) => o.geometry?.dispose());
         c.joint.scale.set(1, 1, 1);
         c.parent.remove(c.stump);
         c.joint.traverse((o) => (o.userData.cut = false));

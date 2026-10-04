@@ -226,7 +226,8 @@ export class Multiplayer {
     for (const p of this.peers.values()) {
       p.reset();
       p.team = p.peerId === this.oneId ? "one" : "hunter";
-      p.h.setTint(p.team === "one" ? 0xff8a8a : 0xffffff, p.team === "one" ? 0x2a0000 : 0x000000);
+      p.tint = p.team === "one" ? [0xff8a8a, 0x2a0000] : [0xffffff, 0x000000];
+      p.h.setTint(...p.tint);
     }
     g.mpSpawn(spawn, this.isOne, d.hunters);
   }
