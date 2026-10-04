@@ -1,0 +1,4 @@
+blender/build.log
+*.blend1
+assets/source/
+node_modules/

@@ -9,6 +9,16 @@
       "attack_special": 7,
       "hit": 2,
       "dead": 4
+    },
+    "Ichigo": {
+      "idle": 4,
+      "running": 8,
+      "jump": 8,
+      "attack_1": 8,
+      "attack_2": 8,
+      "attack_special": 8,
+      "hit": 3,
+      "dead": 3
     }
   },
   "maps": [

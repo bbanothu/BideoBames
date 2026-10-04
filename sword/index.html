@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ashen Oath</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E6%AD%BB%E6%95%97%E5%8B%9D%E5%90%BC%E9%9C%87%E7%AA%81%E5%BD%B1%E7%85%99%E6%AF%92%E5%85%89%E7%99%92%E8%81%96%E6%80%92%E6%97%8B%E5%90%B8%E5%B1%8D%E7%88%86%E6%96%AC%E6%AE%BA%E7%BD%B0%E9%AD%82%E7%9F%A2&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+    </script>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <div id="hud" class="hidden">
+      <div id="bars">
+        <div id="who"><span id="who-class">Warrior</span><span id="who-lvl">Lv 1</span></div>
+        <div id="orbs"></div>
+        <div id="hp-bar" class="bar hp"><div class="trail"></div><div class="fill"></div><span class="val" id="hp-val"></span></div>
+        <div id="fp-bar" class="bar fp"><div class="fill"></div></div>
+        <div id="buffs"></div>
+        <div id="bleed-label" class="hidden"></div>
+      </div>
+      <div id="st-bar" class="bar st"><div class="fill"></div><i class="mark"></i></div>
+      <div id="bleed"></div>
+      <div id="quick" class="hidden"><div class="slot"><div class="flask"></div><span id="estus-count">4</span></div></div>
+      <div id="rcluster">
+        <div id="skills"></div>
+        <div class="rrow">
+          <div id="quick2" class="tile"><div class="slot mana"><div class="flask"></div></div><span id="mana-count">3</span><em>T</em></div>
+          <div id="wtile" class="tile big"><div id="wglyph"></div><span id="weapon">Demon Blade</span><em>F</em></div>
+          <div id="items"></div>
+        </div>
+        <div id="souls"><span class="icon"></span><span id="souls-val">0</span></div>
+      </div>
+      <div id="crosshair" class="hidden"></div>
+      <div id="boss" class="hidden">
+        <div id="boss-dots"></div>
+        <div class="row"><span class="name">Ashen Warden</span><span id="boss-dmg"></span></div>
+        <div class="bar bossbar"><div class="trail"></div><div class="fill"></div></div>
+      </div>
+      <div id="prompt" class="hidden"></div>
+      <div id="lock" class="hidden"></div>
+      <div id="floaters"></div>
+      <div id="toast"></div>
+      <div id="mp-hud" class="hidden"></div>
+      <div id="message" class="hidden"><div class="head">A message reads…</div><div class="body"></div></div>
+    </div>
+
+    <div id="banner"><div class="band"><span class="kanji"></span><span class="txt"></span></div></div>
+    <div id="fade"></div>
+
+    <div id="title" class="screen">
+      <div class="title-wrap">
+        <h1>Ashen Oath</h1>
+        <div class="sub">a small souls-like</div>
+        <div class="menu">
+          <button id="continue-btn" class="hidden">Continue</button>
+          <button id="new-btn">New Game</button>
+          <button id="mp-btn">Multiplayer</button>
+          <button id="controls-btn">Options</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="menu" class="screen hidden">
+      <div class="panel board">
+        <div id="menu-tabs">
+          <button id="menu-prev" class="cyc">‹ <kbd>Q</kbd></button>
+          <button data-tab="equipment">Equipment</button>
+          <button data-tab="inventory">Inventory</button>
+          <button data-tab="options">Options</button>
+          <button id="menu-next" class="cyc"><kbd>E</kbd> ›</button>
+        </div>
+        <div class="board-body">
+          <div id="tab-equipment" class="eq hidden"></div>
+          <div id="tab-inventory" class="hidden">
+            <div class="inv-layout">
+              <div id="inv-equip"></div>
+              <div>
+                <div id="inv-grid"></div>
+                <div id="inv-detail"></div>
+                <div class="inv-actions"><button id="inv-use" class="brush on">Use</button></div>
+              </div>
+            </div>
+          </div>
+          <div id="tab-options" class="opt hidden">
+            <div id="opt-list"></div>
+            <div id="opt-body"></div>
+          </div>
+        </div>
+        <div class="board-foot"><span id="menu-desc"></span><span class="prompts"><kbd>Esc</kbd> Close</span></div>
+      </div>
+    </div>
+
+    <div id="classes" class="screen hidden">
+      <div class="panel classes-panel">
+        <h2>Choose your Path</h2>
+        <div id="class-cards"></div>
+        <div class="menu"><button id="classes-back">Back</button></div>
+      </div>
+    </div>
+
+    <div id="mp" class="screen hidden">
+      <div class="panel">
+        <h2>The Hunt</h2>
+        <div class="sub">One against all who answer the call.</div>
+        <div id="mp-entry">
+          <input id="mp-name" class="field" maxlength="16" placeholder="Your name" />
+          <div id="mp-classes" class="class-row"></div>
+          <div class="menu"><button id="mp-host" class="primary">Create Match — be the One</button></div>
+          <div class="join-row">
+            <input id="mp-code" class="field code" maxlength="4" placeholder="CODE" autocomplete="off" />
+            <button id="mp-join" class="small">Join as Hunter</button>
+          </div>
+        </div>
+        <div id="mp-room" class="hidden">
+          <div class="code-label">Match code</div>
+          <div id="mp-code-show" class="code-big">----</div>
+          <ul id="mp-players"></ul>
+          <div class="menu"><button id="mp-start" class="primary">Begin the Hunt</button></div>
+          <div id="mp-wait" class="hint"></div>
+        </div>
+        <div id="mp-status" class="hint"></div>
+        <div class="menu"><button id="mp-back">Back</button></div>
+      </div>
+    </div>
+
+    <div id="levelup" class="screen hidden">
+      <div class="panel wide">
+        <h2 id="bonfire-name">Bonfire</h2>
+        <div class="sub">Rested. Flasks refilled — the dead walk again.</div>
+        <div class="lv-grid">
+          <div class="lv-col">
+            <div class="kv"><span>Level</span><b id="lv-level">1</b></div>
+            <div class="kv"><span>Souls held</span><b id="lv-souls">0</b></div>
+            <div class="kv"><span>Required</span><b id="lv-cost">0</b></div>
+            <hr />
+            <div class="kv stat"><span>Vigor</span><b id="lv-vig">10</b><button data-stat="vig" title="1">+</button></div>
+            <div class="kv stat"><span>Endurance</span><b id="lv-end">10</b><button data-stat="end" title="2">+</button></div>
+            <div class="kv stat"><span>Strength</span><b id="lv-str">10</b><button data-stat="str" title="3">+</button></div>
+            <div class="kv stat"><span>Arcane</span><b id="lv-arc">10</b><button data-stat="arc" title="4">+</button></div>
+          </div>
+          <div class="lv-col">
+            <div class="kv"><span>HP</span><b id="lv-hp">0</b></div>
+            <div class="kv"><span>Stamina</span><b id="lv-sta">0</b></div>
+            <div class="kv"><span>Mana</span><b id="lv-mana">0</b></div>
+            <div class="kv"><span>Attack</span><b id="lv-dmg">0</b></div>
+            <div class="kv"><span>Spell power</span><b id="lv-spell">0</b></div>
+            <div class="kv"><span>Class</span><b id="lv-class">—</b></div>
+          </div>
+        </div>
+        <div class="menu"><button id="leave-btn">Leave</button></div>
+        <div class="hint">Keys 1 / 2 / 3 / 4 level a stat · E or Esc to leave</div>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
