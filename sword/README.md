@@ -39,6 +39,8 @@ Any modern browser on Linux works (Chrome/Chromium/Firefox). Gamepads with stand
 - **Inventory (I) and loot**: dead enemies drop Crimson Vials (HP, key 4), Azure Vials (mana, key 5),
   arrow bundles and rarely a Rebirth Draught (key 6) that regrows severed limbs. Spent arrows can be
   picked back up by walking over them (quiver holds 60).
+- **Ozrael, the Chained** — a demon merchant in the courtyard (E to talk) who sells arrows, vials,
+  Rebirth Draughts and Estus Shards (+1 flask, up to 8) for souls.
 - **Sekiro-style UI**: minimal HUD, brush-kanji death screen, and a wooden Equipment · Inventory ·
   Options board (Esc) with saved settings — camera speed, invert Y, FOV, volumes, brightness,
   shadow quality, render resolution, camera shake, enemy health bars.
@@ -95,6 +97,7 @@ the game falls back to the procedural models in `src/humanoid.js`.
 - `src/classes.js` — class/skill data; `src/spells.js` — skill & special-move effects
 - `src/terrain.js` — endless chunked terrain, scatter and roaming enemies
 - `src/loot.js` — drops, pickups, arrow recovery; `src/menu.js` — board menu, settings, painted UI textures
+- `src/merchant.js` — Ozrael and his shop
 - `src/mp.js` — match client (rooms, rounds, state sync); `src/remote.js` — other players' puppets
 - `server/server.js` — static server + WebSocket room relay
 - `src/archery.js` — bow rig (live string, nocked arrow) and arrow projectiles

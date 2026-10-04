@@ -53,6 +53,19 @@ export class Player extends Actor {
     this.h.bow = this.bow.group;
     this.aimDir = new THREE.Vector3(0, 0, 1);
     this.buffs = {};
+    this.vy = 0;
+    this.airborne = false;
+    this.grappleAim = null;
+    this.aimTick = 0;
+    // Grappling rope + hook.
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this.rope = new THREE.Line(rg, new THREE.LineBasicMaterial({ color: 0x3a2a1c }));
+    this.rope.frustumCulled = false;
+    this.rope.visible = false;
+    this.hook = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 6), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.8, roughness: 0.4 }));
+    this.hook.visible = false;
+    game.scene.add(this.rope, this.hook);
     this.T = { scale: 1, bleedMul: 1, limbHp: 0 };
     this.applyClass("warrior");
     this.equip("sword");
@@ -152,6 +165,9 @@ export class Player extends Actor {
     this.buffs = {};
     this.h.setOpacity(1);
     this.yOff = 0;
+    this.vy = 0;
+    this.airborne = false;
+    this.rope.visible = this.hook.visible = false;
     this.h.root.visible = true;
     this.buffer = null;
     this.clearInjuries();
@@ -162,7 +178,8 @@ export class Player extends Actor {
   }
 
   captureBuffer(inp) {
-    for (const a of ["light", "heavy", "roll", "estus", "swap", "special", "manaPot"]) if (inp[a]) this.buffer = { a, t: 0.4 };
+    for (const a of ["light", "heavy", "roll", "estus", "swap", "special", "manaPot", "jump", "grapple"]) if (inp[a]) this.buffer = { a, t: 0.4 };
+    if (inp.grapplePad && this.mode !== "bow") this.buffer = { a: "grapple", t: 0.4 };
     if (inp.spell) this.buffer = { a: "spell", i: inp.spell - 1, t: 0.4 };
     if (inp.item) this.buffer = { a: "item", i: ["hpvial", "mpvial", "regrow"][inp.item - 1], t: 0.4 };
   }
@@ -209,8 +226,9 @@ export class Player extends Actor {
           this.stDelay = 0.5;
         }
         const dir = mag > 0.01 ? move.clone().normalize() : move;
-        this.vel.x = damp(this.vel.x, dir.x * speed, 12, dt);
-        this.vel.z = damp(this.vel.z, dir.z * speed, 12, dt);
+        const accel = this.airborne ? 2.5 : 12; // keep momentum in the air
+        this.vel.x = damp(this.vel.x, dir.x * speed, accel, dt);
+        this.vel.z = damp(this.vel.z, dir.z * speed, accel, dt);
         if (lock && !this.sprinting) this.facing = dampAngle(this.facing, angleTo(this.pos, lock.pos), 12, dt);
         else if (mag > 0.1) this.facing = dampAngle(this.facing, Math.atan2(move.x, move.z), 11, dt);
         const sp = Math.hypot(this.vel.x, this.vel.z);
@@ -223,7 +241,38 @@ export class Player extends Actor {
         if (this.blocking) {
           for (const k of ["lShX", "lShY", "lShZ", "lEl"]) pose[k] = P.BLOCK[k];
         }
+        if (this.airborne) {
+          copyPose(pose, P.JUMP);
+          if (bowMode) for (const k of ["lShX", "lShY", "lShZ", "lEl"]) pose[k] = P.BOW_IDLE[k];
+        }
         this.tryActions(move, mag);
+        break;
+      }
+      case "grapple": {
+        // Throw the hook, then reel in hard toward the anchor.
+        const gp = this.grappling;
+        const hand = this.h.lHand.getWorldPosition(new THREE.Vector3());
+        const reach = Math.min(1, this.t / 0.18);
+        const end = hand.clone().lerp(gp.hit, reach);
+        const ra = this.rope.geometry.attributes.position;
+        ra.setXYZ(0, hand.x, hand.y, hand.z);
+        ra.setXYZ(1, end.x, end.y, end.z);
+        ra.needsUpdate = true;
+        this.hook.position.copy(end);
+        this.hook.lookAt(gp.hit.clone().add(gp.dir));
+        this.hook.rotateX(Math.PI / 2);
+        copyPose(pose, P.GRAPPLE);
+        animRate = 20;
+        this.facing = dampAngle(this.facing, Math.atan2(gp.dir.x, gp.dir.z), 14, dt);
+        this.vel.set(0, 0, 0);
+        if (this.t >= 0.18) {
+          const to = gp.target.clone().sub(this.pos);
+          const d = to.length();
+          const step = Math.min(d, 26 * dt * Math.min(1, (this.t - 0.18) * 4 + 0.3));
+          this.pos.addScaledVector(to.normalize(), step);
+          g.world.resolve(this.pos, this.radius, this.pos.y);
+          if (d < 0.6 || this.t > 2.4) this.endGrapple();
+        }
         break;
       }
       case "attack": {
@@ -496,6 +545,7 @@ export class Player extends Actor {
 
     if (!["dead", "roll", "rest"].includes(this.state)) this.injuryPose(pose);
     this.physics(dt);
+    this.updateGrappleAim();
     this.sync();
     this.h.update(dt, pose, animRate, snap);
     if (nock) {
@@ -566,7 +616,7 @@ export class Player extends Actor {
 
   tryActions(move, mag) {
     const b = this.buffer;
-    if (!b || (this.sta <= 0 && !["swap", "spell", "manaPot", "item"].includes(b.a))) return;
+    if (!b || (this.sta <= 0 && !["swap", "spell", "manaPot", "item", "grapple"].includes(b.a))) return;
     let ok = false;
     if (this.mode === "bow" && (b.a === "light" || b.a === "heavy")) ok = b.a === "light" ? this.startDraw() : true;
     else if (b.a === "light" || b.a === "heavy") ok = this.startAttack(b.a, move, mag);
@@ -577,6 +627,8 @@ export class Player extends Actor {
     else if (b.a === "special") ok = this.startSpecial(move, mag);
     else if (b.a === "manaPot") ok = this.startDrink("mana");
     else if (b.a === "item") ok = this.useItem(b.i);
+    else if (b.a === "jump") ok = this.startJump();
+    else if (b.a === "grapple") ok = this.state === "idle" || this.state === "loose" ? this.startGrapple() : false;
     if (ok) this.buffer = null;
   }
 
@@ -607,8 +659,107 @@ export class Player extends Actor {
     return true;
   }
 
+  startJump() {
+    if (this.airborne || this.state !== "idle" || this.h.legsLost === 2) return true;
+    this.vy = this.h.legsLost ? 5 : 8.6;
+    this.airborne = true;
+    this.sta -= 8;
+    this.stDelay = 0.4;
+    return true;
+  }
+
+  // What the screen centre points at, within hook range (refreshed every few frames).
+  updateGrappleAim() {
+    const g = this.game;
+    if (++this.aimTick % 3) return;
+    this.grappleAim = null;
+    if (!["idle", "loose"].includes(this.state)) return;
+    const cam = g.camera;
+    const ray = (this.aimRay ||= new THREE.Raycaster());
+    ray.set(cam.getWorldPosition(new THREE.Vector3()), cam.getWorldDirection(new THREE.Vector3()));
+    ray.far = 40;
+    const hits = ray.intersectObjects(g.world.grappleList(this.pos.x, this.pos.z), true);
+    for (const h of hits) {
+      const d = h.point.distanceTo(this.pos);
+      if (d < 3 || d > 32 || h.object.userData.noGrapple) continue;
+      const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : new THREE.Vector3(0, 1, 0);
+      this.grappleAim = { point: h.point.clone(), normal: n };
+      break;
+    }
+  }
+
+  startGrapple() {
+    const a = this.grappleAim;
+    if (!a) {
+      this.game.hud.toast("Nothing to hook onto", 800);
+      return true;
+    }
+    if (this.h.severed.has("lArm")) {
+      this.game.hud.toast("You need your left arm to throw the hook");
+      return true;
+    }
+    const dir = a.point.clone().sub(this.pos).normalize();
+    // Aim to arrive just off the surface (on top of it if we hit a top face).
+    const target = a.point.clone().addScaledVector(a.normal, a.normal.y > 0.6 ? 0.05 : 0.55);
+    if (a.normal.y <= 0.6) target.y -= 0.9;
+    this.grappling = { hit: a.point.clone(), target, dir };
+    this.rope.visible = this.hook.visible = true;
+    this.airborne = true;
+    this.vy = 0;
+    this.reveal?.();
+    this.setState("grapple");
+    return true;
+  }
+
+  endGrapple() {
+    const w = this.game.world;
+    this.rope.visible = this.hook.visible = false;
+    // Pull ourselves up onto a nearby ledge if there is one; otherwise drop with a little hop.
+    const ledge = w.ledgeAt(this.pos);
+    if (ledge) {
+      this.pos.set(ledge.x, ledge.top, ledge.z);
+      this.airborne = false;
+      this.vy = 0;
+    } else {
+      this.airborne = true;
+      this.vy = 3.5;
+    }
+    this.setState("idle");
+  }
+
+  // Player movement with gravity, jumping and standing on top of things.
+  physics(dt) {
+    const w = this.game.world;
+    if (this.state === "grapple") return;
+    const px = this.pos.x, pz = this.pos.z;
+    this.pos.x += this.vel.x * dt;
+    this.pos.z += this.vel.z * dt;
+    w.resolve(this.pos, this.radius, this.pos.y);
+    let ground = w.groundAt(this.pos.x, this.pos.z, this.pos.y, this.radius);
+    if (ground < -1.9) {
+      // Deep water turns you back.
+      this.pos.x = px;
+      this.pos.z = pz;
+      ground = w.groundAt(px, pz, this.pos.y, this.radius);
+    }
+    if (!this.airborne && this.pos.y - ground > 0.45) {
+      this.airborne = true; // walked off an edge
+      this.vy = 0;
+    }
+    if (this.airborne) {
+      this.vy -= 24 * dt;
+      this.pos.y += this.vy * dt;
+      if (this.pos.y <= ground) {
+        if (this.vy < -13) this.game.particles.burst(this.pos.clone().setY(ground + 0.1), 18, { speed: 2.5, up: 0.4, life: 0.6, size: 0.18, color: [0.55, 0.5, 0.42], a: 0.45, grav: 2, drag: 3 });
+        this.pos.y = ground;
+        this.vy = 0;
+        this.airborne = false;
+      }
+    } else this.pos.y = ground;
+  }
+
   startRoll(move, mag) {
-    if (this.h.legsLost) return true; // can't roll on one leg
+    if (this.h.legsLost || this.airborne) return true; // can't roll on one leg or in the air
     this.sta -= this.cls.rollCost ?? 22;
     this.stDelay = 0.75;
     this.game.audio.roll();

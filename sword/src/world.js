@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { clamp, rand } from "./util.js";
 import { Terrain, heightAt } from "./terrain.js";
+import { Nature } from "./nature.js";
+import { makeMaterials, wallSegment, torii, lantern, pagoda } from "./japan.js";
 
 function canvasTex(draw, size = 512) {
   const c = document.createElement("canvas");
@@ -133,7 +135,7 @@ class Bonfire {
     this.light.position.set(0, 1.0, 0);
     g.add(this.light);
     world.scene.add(g);
-    world.circles.push({ x, z, r: 0.6 });
+    world.circles.push({ x, z, r: 0.6, top: 1.1 });
   }
 
   setLit(v) {
@@ -171,8 +173,12 @@ export class World {
       wood: new THREE.MeshStandardMaterial({ color: 0x2b2017, roughness: 1 }),
       iron: new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.8, roughness: 0.5 }),
     };
+    this.J = makeMaterials();
+    this.grapplables = [];
+    this.nature = new Nature(this);
     this.build();
     this.terrain = new Terrain(this);
+    this.terrainApi = this.terrain;
   }
 
   heightAt(x, z) {
@@ -185,7 +191,7 @@ export class World {
     m.castShadow = m.receiveShadow = true;
     this.scene.add(m);
     if (collide) {
-      this.boxes.push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 });
+      this.boxes.push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, top: y0 + h });
       this.cameraMeshes.push(m);
     }
     return m;
@@ -201,33 +207,38 @@ export class World {
       while (p < b - 0.01) {
         const len = Math.min(b - p, rand(2.5, 4.5));
         const hh = h * rand(0.72, 1.1);
-        if (axis === "x") this.box(p + len / 2, at, len, t, hh);
-        else this.box(at, p + len / 2, t, len, hh);
+        const cx = axis === "x" ? p + len / 2 : at;
+        const cz = axis === "x" ? at : p + len / 2;
+        const seg = wallSegment(this.J, cx, cz, len, t, hh, axis === "x");
+        this.scene.add(seg.group);
+        this.cameraMeshes.push(...seg.cameraMeshes);
+        const w = axis === "x" ? len : t + 0.25, d = axis === "x" ? t + 0.25 : len;
+        this.boxes.push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, top: hh + 0.2 });
         p += len;
       }
     }
   }
 
   pillar(x, z, r, h, broken = false) {
-    const mat = this.mats.stone;
+    const mat = broken ? this.mats.stone : this.J.lacquer;
     const hh = broken ? h * rand(0.25, 0.55) : h;
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.08, hh, 12), mat);
     m.position.set(x, hh / 2, z);
     m.castShadow = m.receiveShadow = true;
     this.scene.add(m);
-    const base = new THREE.Mesh(tiledBox(r * 2.6, 0.4, r * 2.6), mat);
+    const base = new THREE.Mesh(tiledBox(r * 2.6, 0.4, r * 2.6), this.J.stone);
     base.position.set(x, 0.2, z);
     base.castShadow = base.receiveShadow = true;
     this.scene.add(base);
     if (!broken) {
-      const cap = new THREE.Mesh(tiledBox(r * 2.6, 0.35, r * 2.6), mat);
+      const cap = new THREE.Mesh(tiledBox(r * 2.8, 0.35, r * 2.8), this.J.wood);
       cap.position.set(x, hh + 0.17, z);
       cap.castShadow = true;
       this.scene.add(cap);
     } else {
       for (let i = 0; i < 3; i++) this.rubble(x + rand(-2, 2), z + rand(-2, 2), rand(0.3, 0.7));
     }
-    this.circles.push({ x, z, r: r * 1.2 });
+    this.circles.push({ x, z, r: r * 1.2, top: broken ? hh : hh + 0.35 });
     this.cameraMeshes.push(m);
   }
 
@@ -238,7 +249,7 @@ export class World {
     m.scale.y = 0.6;
     m.castShadow = m.receiveShadow = true;
     this.scene.add(m);
-    if (s > 0.5) this.circles.push({ x, z, r: s * 0.9 });
+    if (s > 0.5) this.circles.push({ x, z, r: s * 0.9, top: s * 0.8 });
   }
 
   brazier(x, z) {
@@ -257,32 +268,25 @@ export class World {
     light.position.y = 1.7;
     g.add(light);
     this.scene.add(g);
-    this.circles.push({ x, z, r: 0.45 });
+    this.circles.push({ x, z, r: 0.45, top: 1.4 });
     this.braziers.push({ x, z, light, seed: Math.random() * 10 });
   }
 
-  tree(x, z) {
-    const mat = this.mats.wood;
-    const g = new THREE.Group();
-    g.position.set(x, 0, z);
-    const h = rand(4, 6);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.28, h, 7), mat);
-    trunk.position.y = h / 2;
-    trunk.rotation.z = rand(-0.1, 0.1);
-    trunk.castShadow = true;
-    g.add(trunk);
-    for (let i = 0; i < 6; i++) {
-      const l = rand(1, 2.2);
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.08, l, 5), mat);
-      const y = rand(h * 0.45, h * 0.95);
-      const a = rand(0, Math.PI * 2);
-      b.position.set(Math.cos(a) * l * 0.35, y + l * 0.3, Math.sin(a) * l * 0.35);
-      b.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9);
-      b.castShadow = true;
-      g.add(b);
-    }
-    this.scene.add(g);
-    this.circles.push({ x, z, r: 0.35 });
+  tree(x, z, kind = "sakura") {
+    const t = this.nature.makeTree(kind, Math.round(Math.abs(x * 7 + z * 3)) % 2);
+    t.position.set(x, this.heightAt(x, z), z);
+    t.rotation.y = rand(0, Math.PI * 2);
+    this.scene.add(t);
+    this.grapplables.push(t);
+    this.circles.push({ x, z, r: 0.45, top: 6 });
+    if (kind === "sakura" || kind === "maple") this.nature.sakura.push({ x, y: 5, z, color: kind === "sakura" ? [0.98, 0.76, 0.84] : [0.85, 0.25, 0.08] });
+  }
+
+  place(built) {
+    this.scene.add(built.group);
+    this.grapplables.push(built.group);
+    if (built.circles) this.circles.push(...built.circles);
+    if (built.boxes) this.boxes.push(...built.boxes);
   }
 
   grave(x, z) {
@@ -336,17 +340,33 @@ export class World {
         side: THREE.BackSide,
         depthWrite: false,
         fog: false,
+        uniforms: { uTime: { value: 0 }, uSun: { value: SUN_DIR } },
         vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-        fragmentShader: `varying vec3 vDir;
+        fragmentShader: `varying vec3 vDir; uniform float uTime; uniform vec3 uSun;
+          float hs(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float ns(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+            return mix(mix(hs(i), hs(i+vec2(1,0)), f.x), mix(hs(i+vec2(0,1)), hs(i+vec2(1,1)), f.x), f.y); }
+          float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a*ns(p); p *= 2.07; a *= 0.5; } return v; }
           void main(){
-            float h = vDir.y;
-            vec3 horizon = vec3(0.77, 0.82, 0.87), zenith = vec3(0.30, 0.50, 0.80), below = vec3(0.62, 0.62, 0.58);
-            vec3 c = h > 0.0 ? mix(horizon, zenith, smoothstep(0.0, 0.55, h)) : mix(horizon, below, smoothstep(0.0, -0.2, h));
+            vec3 d = normalize(vDir);
+            float h = d.y;
+            vec3 horizon = vec3(0.80, 0.83, 0.85), zenith = vec3(0.32, 0.52, 0.78), below = vec3(0.62, 0.64, 0.62);
+            vec3 c = h > 0.0 ? mix(horizon, zenith, smoothstep(0.0, 0.6, h)) : mix(horizon, below, smoothstep(0.0, -0.2, h));
+            float sd = max(dot(d, uSun), 0.0);
+            c += vec3(1.0, 0.82, 0.55) * (pow(sd, 6.0) * 0.35 + pow(sd, 60.0) * 0.6);
+            if (h > 0.0) {
+              vec2 uv = d.xz / (h + 0.12) * 1.4 + vec2(uTime * 0.006, uTime * 0.003);
+              float cl = fbm(uv);
+              float cover = smoothstep(0.5, 0.78, cl) * smoothstep(0.0, 0.18, h);
+              vec3 cloud = mix(vec3(0.70, 0.73, 0.78), vec3(1.0, 0.97, 0.92), smoothstep(0.5, 0.9, cl) + pow(sd, 4.0) * 0.4);
+              c = mix(c, cloud, cover * 0.85);
+            }
             gl_FragColor = vec4(c, 1.0);
           }`,
       }),
     );
     dome.renderOrder = -1;
+    this.skyMat = dome.material;
     this.sky.add(dome);
     const glow = canvasTex((g, sz) => {
       const gr = g.createRadialGradient(sz / 2, sz / 2, 0, sz / 2, sz / 2, sz / 2);
@@ -365,7 +385,7 @@ export class World {
 
     const gt = groundTex();
     gt.repeat.set(52 / 4.5, 166 / 4.5);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(52, 166), new THREE.MeshStandardMaterial({ map: gt, roughness: 1, color: 0x9a968e }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(52, 166), new THREE.MeshStandardMaterial({ map: gt, roughness: 1, color: 0xcfc8ba }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(0, 0.006, -65);
     ground.receiveShadow = true;
@@ -390,6 +410,10 @@ export class World {
       const z = rand(-11, 12);
       if (Math.hypot(x, z - 4) > 4 && Math.abs(x) > 2.5) this.grave(x, z);
     }
+    // Torii framing the gate out to the wilds, lanterns lining the way.
+    this.place(torii(this.J, 0, 0, 22, 0, 1.1));
+    for (const [x, z] of [[-2.4, 10.5], [2.4, 10.5], [-2.4, -9.5], [2.4, -9.5], [-3.2, 26], [3.2, 26]]) this.place(lantern(this.J, x, this.heightAt(x, z), z));
+    this.tree(-11, -10, "pine");
     this.pillar(-8, -6, 0.55, 6, true);
     this.pillar(7.5, 2, 0.55, 6, true);
     this.brazier(-3, -11.5);
@@ -403,6 +427,8 @@ export class World {
       this.pillar(3.7, z, 0.45, 6.5, Math.random() < 0.4);
     }
     this.brazier(-4, -32);
+    this.place(torii(this.J, 0, 0, -16.5, 0, 0.95));
+    for (const z of [-24, -40]) for (const x of [-2.6, 2.6]) this.place(lantern(this.J, x, 0, z));
     this.rubble(1.5, -38, 0.6);
 
     // C: Sunken Hall
@@ -416,6 +442,8 @@ export class World {
     }
     this.box(-14, -56, 1.6, 1.2, 1.1, this.mats.wood);
     this.box(13, -81, 1.4, 1.4, 1.0, this.mats.wood);
+    this.tree(-14, -62, "maple");
+    this.tree(14, -74, "maple");
     this.brazier(-16, -68);
     this.brazier(16, -68);
     for (let i = 0; i < 8; i++) this.rubble(rand(-16, 16), rand(-84, -52), rand(0.2, 0.5));
@@ -522,10 +550,62 @@ export class World {
   }
 
   // Push a circle (XZ) out of all static colliders.
-  resolve(pos, r) {
-    const near = this.terrain ? this.terrain.near(pos.x, pos.z) : [];
-    for (const b of near.length ? this.boxes.concat(...near.map((c) => c.boxes)) : this.boxes) {
+  colliders(x, z) {
+    const near = this.terrain ? this.terrain.near(x, z) : [];
+    return {
+      boxes: near.length ? this.boxes.concat(...near.map((c) => c.boxes)) : this.boxes,
+      circles: near.length ? this.circles.concat(...near.map((c) => c.circles)) : this.circles,
+    };
+  }
+
+  // Highest surface under (x, z) that something at height y can stand on (steps up to 0.4 m).
+  groundAt(x, z, y = Infinity, r = 0.3) {
+    let g = heightAt(x, z);
+    const { boxes, circles } = this.colliders(x, z);
+    const reach = y + 0.4;
+    for (const b of boxes) {
+      if (b.disabled || b.top === undefined || b.top > reach || b.top <= g) continue;
+      if (x > b.minX - r * 0.5 && x < b.maxX + r * 0.5 && z > b.minZ - r * 0.5 && z < b.maxZ + r * 0.5) g = b.top;
+    }
+    for (const c of circles) {
+      if (c.top === undefined || c.top > reach || c.top <= g) continue;
+      if (Math.hypot(x - c.x, z - c.z) < c.r + r * 0.5) g = c.top;
+    }
+    return g;
+  }
+
+  // A ledge within `reach` whose top is between y-0.5 and y+2.8: where a grapple lands you.
+  ledgeAt(pos, reach = 1.4) {
+    const { boxes, circles } = this.colliders(pos.x, pos.z);
+    let best = null;
+    for (const b of boxes) {
+      if (b.disabled || b.top === undefined || b.top < pos.y - 0.5 || b.top > pos.y + 2.8) continue;
+      const cx = clamp(pos.x, b.minX, b.maxX), cz = clamp(pos.z, b.minZ, b.maxZ);
+      const d = Math.hypot(pos.x - cx, pos.z - cz);
+      if (d > reach || (best && b.top < best.top)) continue;
+      const m = Math.min(0.45, (b.maxX - b.minX) / 2, (b.maxZ - b.minZ) / 2);
+      best = { top: b.top, x: clamp(pos.x, b.minX + m, b.maxX - m), z: clamp(pos.z, b.minZ + m, b.maxZ - m) };
+    }
+    for (const c of circles) {
+      if (c.top === undefined || c.top < pos.y - 0.5 || c.top > pos.y + 2.8) continue;
+      if (Math.hypot(pos.x - c.x, pos.z - c.z) > c.r + reach || (best && c.top < best.top)) continue;
+      best = { top: c.top, x: c.x, z: c.z };
+    }
+    return best;
+  }
+
+  // Things the grappling hook can bite into near a point.
+  grappleList(x, z) {
+    const near = this.terrain ? this.terrain.near(x, z) : [];
+    return this.cameraMeshes.concat(this.grapplables, ...near.map((c) => c.grapple || []));
+  }
+
+  // y: feet height of the mover. Colliders whose top is below the feet are walked over, not into.
+  resolve(pos, r, y = -Infinity) {
+    const { boxes, circles } = this.colliders(pos.x, pos.z);
+    for (const b of boxes) {
       if (b.disabled) continue;
+      if (b.top !== undefined && y >= b.top - 0.4) continue;
       const cx = clamp(pos.x, b.minX, b.maxX);
       const cz = clamp(pos.z, b.minZ, b.maxZ);
       const dx = pos.x - cx;
@@ -545,7 +625,8 @@ export class World {
         else pos.z = b.maxZ + r;
       }
     }
-    for (const c of near.length ? this.circles.concat(...near.map((ch) => ch.circles)) : this.circles) {
+    for (const c of circles) {
+      if (c.top !== undefined && y >= c.top - 0.4) continue;
       const dx = pos.x - c.x;
       const dz = pos.z - c.z;
       const d = Math.hypot(dx, dz);
@@ -560,6 +641,8 @@ export class World {
   update(dt, focus) {
     this.time += dt;
     this.terrain.update(focus);
+    this.nature.update(dt, focus, this.game.camera);
+    this.skyMat.uniforms.uTime.value = this.time;
     const pt = this.game.particles;
     for (const b of this.bonfires) b.update(dt, pt, this.time);
     for (const b of this.braziers) {

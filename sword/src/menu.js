@@ -7,7 +7,7 @@ const KEY = "ashen-oath-settings";
 
 export const DEFAULTS = {
   sens: 1, invertY: false, fov: 60, shake: true, ebars: true,
-  master: 6, music: 6, bright: 1, shadows: "High", scale: 100,
+  master: 6, music: 6, bright: 1, shadows: "High", scale: 100, postfx: true, grass: "High",
 };
 
 // [setting, label, kind, ...] — kind: num(min,max,step,fmt) | bool | pick(options)
@@ -26,13 +26,13 @@ const PAGES = {
   },
   display: {
     title: "Graphics Options", desc: "Visual quality and brightness. Lower settings run faster.",
-    rows: [["bright", "Brightness", "num", 0.6, 1.6, 0.1, (v) => v.toFixed(1)], ["shadows", "Shadow Quality", "pick", ["Off", "Low", "High"]], ["scale", "Render Resolution", "num", 50, 100, 10, (v) => v + "%"]],
+    rows: [["bright", "Brightness", "num", 0.6, 1.6, 0.1, (v) => v.toFixed(1)], ["shadows", "Shadow Quality", "pick", ["Off", "Low", "High"]], ["scale", "Render Resolution", "num", 50, 100, 10, (v) => v + "%"], ["postfx", "Bloom & Colour Grade", "bool"], ["grass", "Grass Density", "pick", ["Off", "Low", "High"]]],
   },
   controls: { title: "Key Config", desc: "Keyboard and mouse controls (gamepad in brackets)." },
 };
 const CONTROLS = [
   ["Move", "W A S D  (L-stick)"], ["Camera", "Mouse  (R-stick)"], ["Attack / Draw bow", "Left mouse  (RB)"],
-  ["Heavy / Aim bow", "Right mouse  (RT / LT)"], ["Roll · hold to Sprint", "Space  (B)"], ["Block", "Shift  (LB)"],
+  ["Heavy / Aim bow", "Right mouse  (RT / LT)"], ["Roll · hold to Sprint", "Space  (B)"], ["Jump", "C  (A)"], ["Grappling hook", "G  (LT)"], ["Block", "Shift  (LB)"],
   ["Skills", "1 · 2 · 3  (D-pad)"], ["Special", "V  (L3)"], ["Swap weapon / bow", "F  (Y)"],
   ["Estus · Mana flask", "R · T  (X · D-pad ↓)"], ["Crimson · Azure vial · Rebirth", "4 · 5 · 6"], ["Lock on", "Tab / Q  (R3)"],
   ["Interact", "E  (A)"], ["Inventory", "I  (Select)"], ["Menu", "Esc  (Start)"],

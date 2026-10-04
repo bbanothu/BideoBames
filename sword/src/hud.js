@@ -54,6 +54,7 @@ export class Hud {
     this.bleedEl = $("bleed");
     this.crosshair = $("crosshair");
     this.orbs = $("orbs");
+    this.grappleMark = $("grapple-mark");
     this.bossDots = $("boss-dots");
     this.wglyph = $("wglyph");
     this.fpBar = $("fp-bar");
@@ -221,6 +222,9 @@ export class Hud {
     const lt = g.lockTarget;
     const lp = lt && project(lt.pos, 1.1 * lt.T.scale);
     this.lock.classList.toggle("hidden", !lp);
+    const ga = p.grappleAim && p.state !== "grapple" && project(p.grappleAim.point, 0);
+    this.grappleMark.classList.toggle("hidden", !ga);
+    if (ga) this.grappleMark.style.transform = `translate(${ga[0]}px, ${ga[1]}px)`;
     this.lock.classList.toggle("deathblow", !!lt && lt.state === "hit");
     if (lp) this.lock.style.transform = `translate(${lp[0]}px, ${lp[1]}px)`;
 

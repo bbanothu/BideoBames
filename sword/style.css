@@ -539,6 +539,32 @@ kbd {
   background: radial-gradient(#fff 30%, rgba(255, 245, 230, 0.45) 55%, transparent 70%);
   box-shadow: 0 0 12px rgba(255, 245, 230, 0.95);
 }
+/* Grapple point: a small hooked diamond on whatever the hook can reach. */
+#grapple-mark {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+}
+#grapple-mark i {
+  position: absolute;
+  inset: 4px;
+  transform: rotate(45deg);
+  border: 2px solid rgba(160, 230, 255, 0.95);
+  box-shadow: 0 0 10px rgba(120, 210, 255, 0.9), inset 0 0 6px rgba(120, 210, 255, 0.6);
+}
+#grapple-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #dff6ff;
+}
 #lock.deathblow {
   /* staggered: the red deathblow mark */
   background: radial-gradient(#ff5050 30%, rgba(255, 30, 30, 0.5) 55%, transparent 70%);

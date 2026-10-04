@@ -55,7 +55,7 @@ export class Input {
   }
 
   blank() {
-    return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, light: false, heavy: false, fireHeld: false, aim: false, swap: false, spell: 0, special: false, manaPot: false, item: 0, inventory: false, roll: false, sprint: false, block: false, estus: false, interact: false, lock: false, pause: false, any: false, stat: 0 };
+    return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, light: false, heavy: false, fireHeld: false, aim: false, swap: false, spell: 0, special: false, manaPot: false, item: 0, inventory: false, jump: false, grapple: false, grapplePad: false, padA: false, roll: false, sprint: false, block: false, estus: false, interact: false, lock: false, pause: false, any: false, stat: 0 };
   }
 
   poll(dt) {
@@ -81,6 +81,8 @@ export class Input {
     a.manaPot = kp.has("KeyT");
     a.item = kp.has("Digit4") ? 1 : kp.has("Digit5") ? 2 : kp.has("Digit6") ? 3 : 0;
     a.inventory = kp.has("KeyI");
+    a.jump = kp.has("KeyC");
+    a.grapple = kp.has("KeyG");
     a.estus = kp.has("KeyR");
     a.interact = kp.has("KeyE");
     a.lock = kp.has("Tab") || kp.has("KeyQ") || mp.has(1);
@@ -99,6 +101,8 @@ export class Input {
       a.lookX += ax(2) * 3.0 * dt * sens;
       a.lookY += ax(3) * 2.0 * dt * sens * inv;
       a.interact ||= bp(0);
+      a.padA = bp(0); // jumps when there's nothing to interact with
+      a.grapplePad = bp(6);
       dodge ||= b(1);
       a.estus ||= bp(2);
       a.block ||= b(4);

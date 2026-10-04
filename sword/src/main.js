@@ -1,4 +1,25 @@
 import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+// Colour grade: cool shadows, warm highlights, a touch more saturation, vignette and fine grain.
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      c.rgb *= mix(vec3(0.93, 1.0, 1.05), vec3(1.05, 1.0, 0.93), smoothstep(0.04, 0.9, l));
+      c.rgb = max(mix(vec3(l), c.rgb, 1.1), 0.0);
+      c.rgb *= mix(0.7, 1.0, smoothstep(0.95, 0.35, length(vUv - 0.5)));
+      c.rgb += (fract(sin(dot(vUv * 1000.0 + uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.012;
+      gl_FragColor = c;
+    }`,
+};
 import { Sfx } from "./audio.js";
 import { Input } from "./input.js";
 import { Particles, Trail } from "./particles.js";
@@ -42,9 +63,16 @@ class Game {
 
     this.scene = new THREE.Scene();
     // Daytime: the sky dome (world.js) paints the background; haze matches its horizon.
-    this.scene.background = new THREE.Color(0xc4d2de);
-    this.scene.fog = new THREE.FogExp2(0xc4d2de, 0.0085);
+    this.scene.background = new THREE.Color(0xc9d2d8);
+    this.scene.fog = new THREE.FogExp2(0xc9d2d8, 0.0085);
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.55, 0.9);
+    this.composer.addPass(this.bloom);
+    this.grade = new ShaderPass(GradeShader);
+    this.composer.addPass(this.grade);
+    this.composer.addPass(new OutputPass());
 
     this.audio = new Sfx();
     this.input = new Input(canvas);
@@ -352,6 +380,11 @@ class Game {
       this.scene.traverse((o) => o.material && ([].concat(o.material).forEach((m) => (m.needsUpdate = true))));
     }
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2) * (s.scale / 100));
+    this.composer.setPixelRatio(this.renderer.getPixelRatio());
+    if (this.grassSetting !== s.grass) {
+      this.grassSetting = s.grass;
+      this.world.terrain.refreshGrass();
+    }
     this.resize();
   }
 
@@ -601,7 +634,7 @@ class Game {
         if (d > def.range * (att.rangeMul ?? 1) + tg.radius) continue;
         const ang = Math.abs(wrapAngle(angleTo(att.pos, tg.pos) - att.facing));
         if (ang > def.arcRad / 2 && d > att.radius + tg.radius + 0.35) continue;
-        if (Math.abs(att.yOff - tg.yOff) > 2.5) continue;
+        if (Math.abs(att.pos.y + att.yOff - tg.pos.y - tg.yOff) > 2.5) continue;
         att.hitSet.add(key);
         if (tg.isRemote) this.hitRemote(att, tg, def, mul);
         else if (tg.isPlayer) {
@@ -1091,6 +1124,7 @@ class Game {
     const w = innerWidth;
     const h = innerHeight;
     this.renderer.setSize(w, h, false);
+    this.composer?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.particles.mat.uniforms.scale.value = (h * this.renderer.getPixelRatio()) / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
@@ -1101,7 +1135,10 @@ class Game {
     this.last = now;
     this.time += dt;
     this.update(dt);
-    this.renderer.render(this.scene, this.camera);
+    if (this.settings?.postfx !== false) {
+      this.grade.uniforms.uTime.value = this.time % 100;
+      this.composer.render();
+    } else this.renderer.render(this.scene, this.camera);
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -1138,6 +1175,7 @@ class Game {
       this.world.update(dt, p.pos);
       this.merchant.update(dt);
       this.particles.update(dt);
+      this.hud.update(dt);
       return;
     }
     if (this.state === "menu") {
@@ -1163,6 +1201,7 @@ class Game {
     const it = this.nearestInteraction();
     this.hud.setPrompt(it ? it.text : null);
     if (it && inp.interact) it.act();
+    else if (inp.padA) inp.jump = true;
     if (this.state !== "playing") return;
 
     p.update(dt, inp);

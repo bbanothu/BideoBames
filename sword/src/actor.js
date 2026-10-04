@@ -95,8 +95,14 @@ export class Actor {
   }
 
   physics(dt) {
+    const px = this.pos.x, pz = this.pos.z;
     this.pos.addScaledVector(this.vel, dt);
     this.game.world.resolve(this.pos, this.radius);
+    // Lakes: wade the shallows, but deep water turns you back.
+    if (this.game.world.heightAt(this.pos.x, this.pos.z) < -1.9) {
+      this.pos.x = px;
+      this.pos.z = pz;
+    }
     this.pos.y = this.game.world.heightAt(this.pos.x, this.pos.z);
   }
 

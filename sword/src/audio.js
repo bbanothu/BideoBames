@@ -1,8 +1,13 @@
 // All sound is synthesized with WebAudio so the game ships with zero asset files.
+// Only the bow (draw, twang, arrow impact), sword swings and the player taking damage make sound.
+// Everything else is silenced here; the synth recipes stay below in case they're wanted back.
+const MUTED = ["flesh", "sever", "pickup", "cast", "blink", "block", "roll", "heal", "souls", "bonfire", "boom", "roar", "died", "felled"];
+
 export class Sfx {
   constructor() {
     this.ctx = null;
     this.music = null;
+    for (const name of MUTED) this[name] = () => {};
   }
 
   init() {

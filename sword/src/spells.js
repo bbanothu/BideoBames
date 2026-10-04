@@ -75,7 +75,7 @@ export class Spells {
       const wall = this.ray.intersectObjects(g.world.cameraMeshes, false).length > 0;
       const ground = b.pos.y < g.world.heightAt(b.pos.x, b.pos.z) + 0.05;
       if (hit || wall || ground || b.t > 3 || b.done) {
-        this.burst(b.pos, b.B.fx, !b.visual);
+        this.burst(b.pos, b.B.fx);
         if (hit) {
           const dmg = b.B.dmg * g.player.spellMul;
           g.damageFoe(hit, dmg, 40, b.pos);
@@ -88,11 +88,11 @@ export class Spells {
     this.bolts = this.bolts.filter((b) => !b.done);
   }
 
-  burst(p, [r, gr, b], loud = true) {
+  burst(p, [r, gr, b]) {
     const g = this.game;
     g.particles.burst(p, 40, { speed: 4, up: 0.8, life: 0.5, size: 0.22, color: [r, gr, b], a: 0.9, grav: 1, drag: 3 });
     g.particles.burst(p, 14, { speed: 6, life: 0.35, size: 0.06, color: [1, 0.85, 0.5], grav: 8 });
-    if (loud) g.audio.thunk();
+
   }
 
   // Bursts around a point: Ashen Nova, Sanctuary, Corpse Burst, Ground Slam, Divine Smite.

@@ -28,6 +28,8 @@ export const P = {
   BOW_IDLE: pose({ lShX: -0.45, lShY: 0.1, lShZ: 0.15, lEl: -0.7, rShX: -0.15, rShZ: -0.12, rEl: -0.35, rWrist: 0 }),
   BOW_NOCK: pose({ torsoY: -0.7, headY: 0.65, lShX: -1.5, lShY: 0.75, lShZ: 0, lEl: -0.05, rShX: -1.35, rShY: 0.55, rShZ: 0, rEl: -0.7, rWrist: 0 }),
   BOW_DRAW: pose({ torsoY: -0.75, torsoX: 0.05, headY: 0.7, lShX: -1.55, lShY: 0.78, lShZ: 0, lEl: 0, rShX: 0, rShY: -0.82, rShZ: -1.45, rEl: -2.85, rWrist: 0 }),
+  JUMP: pose({ hipsY: -0.08, torsoX: 0.25, lHip: -1.0, lKnee: 1.4, rHip: -0.25, rKnee: 0.9, lShX: -0.7, lShZ: 0.4, rShX: -0.6, rShZ: -0.3, rEl: -0.8 }),
+  GRAPPLE: pose({ torsoX: -0.1, torsoY: 0.3, lShX: -2.5, lShY: 0.1, lShZ: 0, lEl: -0.05, rShX: -0.4, rEl: -0.9, lHip: -0.9, lKnee: 1.3, rHip: -0.4, rKnee: 1.0, headX: -0.3 }),
   CAST: pose({ torsoY: 0.4, torsoX: 0.1, headY: -0.25, lShX: -1.55, lShY: 0.3, lShZ: 0, lEl: -0.1, rShX: -0.3, rEl: -0.8 }),
   REACH_BACK: pose({ rShX: -2.7, rShY: 0.3, rShZ: 0, rEl: -1.6, rWrist: 0, headY: -0.3 }),
   RELAXED: pose({ hipsY: -0.02, torsoX: 0.05, torsoY: 0, lShX: -0.1, lShY: 0, lShZ: 0.12, lEl: -0.3, rShX: -0.15, rShZ: -0.12, rEl: -0.5, rWrist: -0.9, lHip: -0.05, rHip: 0.05, lKnee: 0.08, rKnee: 0.08 }),

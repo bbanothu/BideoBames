@@ -41,7 +41,10 @@ export class Merchant {
       weapon: "broken", eyes: 0xff3a10, metal: 0x3a2a20, cape: true,
     }));
     h.weapon.visible = false;
-    h.setTint?.(0xffffff);
+    // Faint ember glow seeping through the armour plates.
+    h.matsByName.armor.emissive.set(0x3a0802);
+    h.matsByName.armor.emissiveIntensity = 0.6;
+    h.baseEmissive[h.mats.indexOf(h.matsByName.armor)].copy(h.matsByName.armor.emissive);
     this.pose = { ...P.SIT };
     copyPose(h.cur, this.pose);
     h.root.position.copy(this.pos);
@@ -86,7 +89,7 @@ export class Merchant {
       game.scene.add(c);
       this.flames.push(new THREE.Vector3(cx, hgt + 0.04, cz));
     }
-    this.light = new THREE.PointLight(0xff4a20, 10, 9, 1.6);
+    this.light = new THREE.PointLight(0xff4a20, 5, 8, 1.8);
     this.light.position.set(x, 1.4, z).addScaledVector(fwd, 1);
     game.scene.add(this.light);
   }
@@ -106,7 +109,7 @@ export class Merchant {
     this.pose.lShX = -0.7 + breathe * 0.03;
     this.pose.rShX = -0.7 - breathe * 0.03;
     this.h.update(dt, this.pose, 4);
-    this.light.intensity = 9 + Math.sin(this.t * 9) * 1.5 + Math.sin(this.t * 5.3);
+    this.light.intensity = 5 + Math.sin(this.t * 9) * 0.8 + Math.sin(this.t * 5.3) * 0.6;
     for (const f of this.flames) if (Math.random() < 0.35) g.particles.emit(f.x, f.y, f.z, 0, rand(0.2, 0.5), 0, rand(0.2, 0.4), rand(0.05, 0.09), 1, 0.55, 0.2, 0.9);
     if (Math.random() < 0.2) {
       const e = this.h.neck.getWorldPosition(new THREE.Vector3());
